@@ -1,5 +1,12 @@
 # Assignment 1 - Greedy Heuristics for Selective TSP
 
+## Authors
+- Mateusz Idziejczak 155842
+- Mateusz Stawicki 155900
+
+## Github
+> https://github.com/Luncenok/EvolutionaryComputingLab1
+
 ## Problem Description
 
 This is a variant of the Traveling Salesman Problem where:
@@ -98,9 +105,9 @@ The solutions were checked using Solution checker.xlsx
 1. Create list of all node indices
 2. Shuffle the list
 3. Select first 50% nodes
-4. Shuffle selected nodes to create random order
-5. Return as cycle
+4. Return as cycle
 ```
+![alt text](TSPA_Random.png)
 
 ### Nearest Neighbor (End Only)
 ```
@@ -110,6 +117,7 @@ The solutions were checked using Solution checker.xlsx
    b. Add to end of path
 3. Return cycle
 ```
+![alt text](TSPA_Nearest_Neighbor_end_only.png)
 
 ### Nearest Neighbor (Any Position)
 ```
@@ -121,6 +129,7 @@ The solutions were checked using Solution checker.xlsx
    b. Insert node with minimum delta at best position
 3. Return cycle
 ```
+![alt text](TSPA_Nearest_Neighbor_any_position.png)
 
 ### Greedy Cycle
 ```
@@ -133,6 +142,7 @@ The solutions were checked using Solution checker.xlsx
    b. Insert node with minimum delta at best edge
 4. Return cycle
 ```
+![alt text](TSPA_Greedy_Cycle.png)
 
 ## Notes
 
