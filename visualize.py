@@ -33,7 +33,7 @@ def parse_output_file(filename):
             line = line.strip()
             
             # Match instance name
-            instance_match = re.match(r'=== (\w+)\.csv ===', line)
+            instance_match = re.match(r'=-=-= (\w+)\.csv =-=-=', line)
             if instance_match:
                 current_instance = instance_match.group(1)
                 solutions[current_instance] = {}

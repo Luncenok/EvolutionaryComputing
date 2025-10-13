@@ -1,6 +1,4 @@
 .venv
 .mypy_cache
 __pycache__
-TSPA_*.png
-TSPB_*.png
 .~lock.Solution checker.xlsx#
