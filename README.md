@@ -108,6 +108,7 @@ The solutions were checked using Solution checker.xlsx
 4. Return as cycle
 ```
 ![alt text](TSPA_Random.png)
+![alt text](TSPB_Random.png)
 
 ### Nearest Neighbor (End Only)
 ```
@@ -118,6 +119,7 @@ The solutions were checked using Solution checker.xlsx
 3. Return cycle
 ```
 ![alt text](TSPA_Nearest_Neighbor_end_only.png)
+![alt text](TSPB_Nearest_Neighbor_end_only.png)
 
 ### Nearest Neighbor (Any Position)
 ```
@@ -130,6 +132,7 @@ The solutions were checked using Solution checker.xlsx
 3. Return cycle
 ```
 ![alt text](TSPA_Nearest_Neighbor_any_position.png)
+![alt text](TSPB_Nearest_Neighbor_any_position.png)
 
 ### Greedy Cycle
 ```
@@ -143,6 +146,7 @@ The solutions were checked using Solution checker.xlsx
 4. Return cycle
 ```
 ![alt text](TSPA_Greedy_Cycle.png)
+![alt text](TSPB_Greedy_Cycle.png)
 
 ## Notes
 
