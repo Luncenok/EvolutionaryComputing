@@ -80,15 +80,9 @@ vector<int> nearestNeighborAny(int startNode, int selectCount, const vector<vect
                 if (pos == 0) {
                     // insert at beginning
                     delta += distance[i][solution[0]];
-                    if (solution.size() > 1) {
-                        delta += distance[solution.back()][i] - distance[solution.back()][solution[0]];
-                    }
                 } else if (pos == solution.size()) {
                     // insert at end
                     delta += distance[solution.back()][i];
-                    if (solution.size() > 1) {
-                        delta += distance[i][solution[0]] - distance[solution.back()][solution[0]];
-                    }
                 } else {
                     // insert in middle
                     delta += distance[solution[pos-1]][i] + distance[i][solution[pos]] - distance[solution[pos-1]][solution[pos]];
@@ -159,6 +153,109 @@ vector<int> greedyCycle(int startNode, int selectCount, const vector<vector<int>
         selected[bestNode] = true;
     }
     
+    return solution;
+}
+
+vector<int> greedyRegret2(int startNode, int selectCount, const vector<vector<int>>& distance, const vector<int>& costs) {
+    vector<int> solution;
+    vector<bool> selected(distance.size(), false);
+    solution.push_back(startNode);
+    selected[startNode] = true;
+    if (selectCount > 1) {
+        int bestNode = -1;
+        int bestDist = INT_MAX;
+        for (int i = 0; i < distance.size(); i++) {
+            if (selected[i]) continue;
+            int delta = distance[startNode][i] + costs[i];
+            if (delta < bestDist) { bestDist = delta; bestNode = i; }
+        }
+        solution.push_back(bestNode);
+        selected[bestNode] = true;
+    }
+    while (solution.size() < selectCount) {
+        int chooseNode = -1;
+        int choosePos = -1;
+        int bestRegret = -1;
+        int tieBestDelta = INT_MAX;
+        for (int i = 0; i < distance.size(); i++) {
+            if (selected[i]) continue;
+            int best1 = INT_MAX, best2 = INT_MAX;
+            int bestPos = -1;
+            for (int pos = 0; pos < solution.size(); pos++) {
+                int next = (pos + 1) % solution.size();
+                int delta = distance[solution[pos]][i] + distance[i][solution[next]] - distance[solution[pos]][solution[next]] + costs[i];
+                if (delta < best1) {
+                    best2 = best1;
+                    best1 = delta;
+                    bestPos = pos + 1;
+                } else if (delta < best2) {
+                    best2 = delta;
+                }
+            }
+            int regret = (best2 == INT_MAX ? 0 : (best2 - best1));
+            if (regret > bestRegret || (regret == bestRegret && best1 < tieBestDelta)) {
+                bestRegret = regret;
+                tieBestDelta = best1;
+                chooseNode = i;
+                choosePos = bestPos;
+            }
+        }
+        solution.insert(solution.begin() + choosePos, chooseNode);
+        selected[chooseNode] = true;
+    }
+    return solution;
+}
+
+vector<int> greedyRegret2Weighted(int startNode, int selectCount, const vector<vector<int>>& distance, const vector<int>& costs, double wRegret = 1.0, double wBest = 1.0) {
+    vector<int> solution;
+    vector<bool> selected(distance.size(), false);
+    solution.push_back(startNode);
+    selected[startNode] = true;
+    if (selectCount > 1) {
+        int bestNode = -1;
+        int bestDist = INT_MAX;
+        for (int i = 0; i < distance.size(); i++) {
+            if (selected[i]) continue;
+            int delta = distance[startNode][i] + costs[i];
+            if (delta < bestDist) { bestDist = delta; bestNode = i; }
+        }
+        solution.push_back(bestNode);
+        selected[bestNode] = true;
+    }
+    while (solution.size() < selectCount) {
+        int chooseNode = -1;
+        int choosePos = -1;
+        double bestScore = -1e300;
+        int tieBestDelta = INT_MAX;
+        int tieBestRegret = -1;
+        for (int i = 0; i < distance.size(); i++) {
+            if (selected[i]) continue;
+            int best1 = INT_MAX, best2 = INT_MAX;
+            int bestPos = -1;
+            for (int pos = 0; pos < solution.size(); pos++) {
+                int next = (pos + 1) % solution.size();
+                int delta = distance[solution[pos]][i] + distance[i][solution[next]] - distance[solution[pos]][solution[next]] + costs[i];
+                if (delta < best1) {
+                    best2 = best1;
+                    best1 = delta;
+                    bestPos = pos + 1;
+                } else if (delta < best2) {
+                    best2 = delta;
+                }
+            }
+            int regret = (best2 == INT_MAX ? 0 : (best2 - best1));
+            double score = wRegret * regret - wBest * best1;
+            if (score > bestScore || (abs(score - bestScore) < 1e-12 && (best1 < tieBestDelta || (best1 == tieBestDelta && regret > tieBestRegret)))) {
+                bestScore = score;
+                tieBestDelta = best1;
+                tieBestRegret = regret;
+                chooseNode = i;
+                choosePos = bestPos;
+            }
+        }
+        solution.insert(solution.begin() + choosePos, chooseNode);
+        selected[chooseNode] = true;
+    }
     return solution;
 }
 
@@ -275,6 +372,43 @@ void process(const string& filename) {
         }
         
         cout << "Greedy Cycle:\n";
+        cout << "  Min: " << minObj << ", Max: " << maxObj << ", Avg: " << sumObj / n << "\n";
+        cout << "  Best: ";
+        for (int node : bestSol) cout << node << " ";
+        cout << "\n\n";
+    }
+
+    // Greedy 2-regret (cycle insertion)
+    {
+        int minObj = INT_MAX, maxObj = 0, sumObj = 0;
+        vector<int> bestSol;
+        for (int start = 0; start < n; start++) {
+            auto sol = greedyRegret2(start, selectCount, distance, costs);
+            int obj = calculateObjective(sol, distance, costs);
+            sumObj += obj;
+            if (obj < minObj) { minObj = obj; bestSol = sol; }
+            if (obj > maxObj) maxObj = obj;
+        }
+        cout << "Greedy 2-Regret:\n";
+        cout << "  Min: " << minObj << ", Max: " << maxObj << ", Avg: " << sumObj / n << "\n";
+        cout << "  Best: ";
+        for (int node : bestSol) cout << node << " ";
+        cout << "\n\n";
+    }
+
+    // Greedy weighted (2-regret + best delta), equal weights by default
+    {
+        int minObj = INT_MAX, maxObj = 0, sumObj = 0;
+        vector<int> bestSol;
+        double wRegret = 1.0, wBest = 1.0;
+        for (int start = 0; start < n; start++) {
+            auto sol = greedyRegret2Weighted(start, selectCount, distance, costs, wRegret, wBest);
+            int obj = calculateObjective(sol, distance, costs);
+            sumObj += obj;
+            if (obj < minObj) { minObj = obj; bestSol = sol; }
+            if (obj > maxObj) maxObj = obj;
+        }
+        cout << "Greedy Weighted (2-Regret + BestDelta):\n";
         cout << "  Min: " << minObj << ", Max: " << maxObj << ", Avg: " << sumObj / n << "\n";
         cout << "  Best: ";
         for (int node : bestSol) cout << node << " ";
