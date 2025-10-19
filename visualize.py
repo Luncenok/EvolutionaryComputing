@@ -65,32 +65,38 @@ def visualize_solution(x_coords, y_coords, costs, solution, instance_name, metho
     """Create 2D visualization of the solution"""
     fig, ax = plt.subplots(figsize=(12, 10))
     
-    # Plot all nodes (unselected) in light gray
-    all_nodes = set(range(len(x_coords)))
-    selected_nodes = set(solution)
-    unselected = list(all_nodes - selected_nodes)
-    
-    if unselected:
-        ax.scatter([x_coords[i] for i in unselected], 
-                   [y_coords[i] for i in unselected],
-                   c='lightgray', s=30, alpha=0.3, zorder=1)
-    
-    # Plot selected nodes with color based on cost
+    # Plot all nodes colored by cost (intensity visible for all)
+    all_nodes = range(len(x_coords))
+    vmin = min(costs)
+    vmax = max(costs)
+
+    scatter_all = ax.scatter([x_coords[i] for i in all_nodes],
+                             [y_coords[i] for i in all_nodes],
+                             c=[costs[i] for i in all_nodes],
+                             s=30,
+                             cmap='YlOrRd',
+                             vmin=vmin, vmax=vmax,
+                             edgecolors='none',
+                             alpha=0.6,
+                             zorder=1)
+
+    # Highlight selected nodes (same colormap, larger markers and outline)
     selected_x = [x_coords[i] for i in solution]
     selected_y = [y_coords[i] for i in solution]
     selected_costs = [costs[i] for i in solution]
-    
-    scatter = ax.scatter(selected_x, selected_y, 
-                        c=selected_costs, 
-                        s=100, 
-                        cmap='YlOrRd',
-                        edgecolors='black',
-                        linewidth=0.5,
-                        alpha=0.8,
-                        zorder=3)
-    
+
+    scatter_sel = ax.scatter(selected_x, selected_y,
+                             c=selected_costs,
+                             s=100,
+                             cmap='YlOrRd',
+                             vmin=vmin, vmax=vmax,
+                             edgecolors='black',
+                             linewidth=0.5,
+                             alpha=0.9,
+                             zorder=3)
+
     # Add colorbar for node costs
-    cbar = plt.colorbar(scatter, ax=ax)
+    cbar = plt.colorbar(scatter_all, ax=ax)
     cbar.set_label('Node Cost', rotation=270, labelpad=20)
     
     # Draw the Hamiltonian cycle
