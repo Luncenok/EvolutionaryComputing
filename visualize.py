@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import matplotlib.pyplot as plt
+import os
 import numpy as np
 import re
 
@@ -122,7 +123,8 @@ def visualize_solution(x_coords, y_coords, costs, solution, instance_name, metho
     ax.set_aspect('equal', adjustable='box')
     
     plt.tight_layout()
-    filename = f'{instance_name}_{method_name.replace(" ", "_").replace("(", "").replace(")", "")}.png'
+    os.makedirs('output', exist_ok=True)
+    filename = f'output/{instance_name}_{method_name.replace(" ", "_").replace("(", "").replace(")", "")}.png'
     plt.savefig(filename, dpi=300, bbox_inches='tight')
     print(f'Saved: {filename}')
     plt.close()
@@ -134,7 +136,7 @@ solutions = parse_output_file('output.txt')
 # Generate all visualizations
 for instance in solutions.keys():
     print(f'\nProcessing {instance}.csv...')
-    x_coords, y_coords, costs = read_csv(f'{instance}.csv')
+    x_coords, y_coords, costs = read_csv(f'input/{instance}.csv')
     
     for method, data in solutions[instance].items():
         if 'solution' in data and 'objective' in data:
