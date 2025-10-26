@@ -45,6 +45,39 @@ This is a variant of the Traveling Salesman Problem where:
 4. Return cycle
 ```
 
+### Nearest Neighbor Any 2-Regret
+```
+1. Start with given node
+2. While not enough nodes selected:
+   a. For each unselected node i:
+      For each position pos in current path (0 to size):
+         If pos == 0: delta = cost[i] + dist[i][first_node]
+         Else if pos == size: delta = cost[i] + dist[last_node][i]
+         Else: delta = cost[i] + dist[path[pos-1]][i] + dist[i][path[pos]] - dist[path[pos-1]][path[pos]]
+      Find best (minimum delta) and 2nd-best insertion positions
+      Calculate regret = 2nd_best_delta - best_delta
+   b. Select node with maximum regret (ties broken by minimum best_delta)
+   c. Insert at its best position
+3. Return path
+```
+
+### Nearest Neighbor Any Weighted (2-Regret + BestDelta)
+```
+1. Start with given node
+2. While not enough nodes selected:
+   a. For each unselected node i:
+      For each position pos in current path (0 to size):
+         If pos == 0: delta = cost[i] + dist[i][first_node]
+         Else if pos == size: delta = cost[i] + dist[last_node][i]
+         Else: delta = cost[i] + dist[path[pos-1]][i] + dist[i][path[pos]] - dist[path[pos-1]][path[pos]]
+      Find best (minimum delta) and 2nd-best insertion positions
+      Calculate regret = 2nd_best_delta - best_delta
+      Calculate score = wRegret × regret - wBest × best_delta
+   b. Select node with maximum score (default weights: wRegret=1.0, wBest=1.0)
+   c. Insert at its best position
+3. Return path
+```
+
 ## Key Results
 
 ### TSPA.csv (200 nodes, select 100)
@@ -57,6 +90,8 @@ This is a variant of the Traveling Salesman Problem where:
 | Greedy Cycle | 71488 | 74410 | 72646 |
 | Greedy 2-Regret | 105852 | 123428 | 115474 |
 | Greedy Weighted (2-Regret + BestDelta) | 71108 | 73395 | 72129 |
+| Nearest Neighbor Any 2-Regret | 106373 | 126570 | 116659 |
+| Nearest Neighbor Any Weighted (2-Regret + BestDelta) | 70010 | 75452 | 72401 |
 
 ### TSPB.csv (200 nodes, select 100)
 
@@ -68,6 +103,8 @@ This is a variant of the Traveling Salesman Problem where:
 | Greedy Cycle | 49001 | 57324 | 51400 |
 | Greedy 2-Regret | 66505 | 77072 | 72454 |
 | Greedy Weighted (2-Regret + BestDelta) | 47144 | 55700 | 50950 |
+| Nearest Neighbor Any 2-Regret | 67121 | 79013 | 73646 |
+| Nearest Neighbor Any Weighted (2-Regret + BestDelta) | 44891 | 55247 | 47653 |
 
 ![alt text](TSPA_Greedy_2-Regret.png)
 ![alt text](TSPB_Greedy_2-Regret.png)
@@ -80,6 +117,8 @@ The solutions were checked using Solution checker.xlsx
 > https://github.com/Luncenok/EvolutionaryComputingLab1
 
 ## Conclusions
+
+### Cycle-based Regret Heuristics
 
 The experimental results reveal critical insights about regret-based greedy heuristics:
 
@@ -102,3 +141,33 @@ The **weighted criterion successfully balances two competing objectives**:
 - Slightly behind Nearest Neighbor (any-position) on TSPB, but more consistent
 
 The weighted regret heuristic demonstrates that **sophisticated selection criteria require balancing multiple factors** rather than optimizing a single metric, making it a robust choice for practical selective TSP instances.
+
+### Path-based Regret Heuristics (Nearest Neighbor)
+
+The **Nearest Neighbor Any 2-Regret** and **Nearest Neighbor Any Weighted** variants differ from their greedy cycle counterparts in a fundamental way:
+
+**Key Difference: Path vs Cycle Construction**
+- **Greedy Cycle variants**: Treat the solution as a cycle from the start, inserting nodes between existing edges (u,v) and considering the closing edge back to the first node
+- **Nearest Neighbor variants**: Build a path sequentially, allowing insertion at beginning, middle, or end positions without forming a cycle until construction is complete
+
+**Experimental Results:**
+
+The results confirm our expectations about path-based vs cycle-based construction:
+
+**Nearest Neighbor Any 2-Regret performs poorly**, mirroring the cycle-based Greedy 2-Regret:
+- TSPA: 116.7k average (vs 115.5k for Greedy 2-Regret, vs 72.6k for Greedy Cycle)
+- TSPB: 73.6k average (vs 72.5k for Greedy 2-Regret, vs 51.4k for Greedy Cycle)
+- This confirms that **pure regret maximization fails regardless of construction strategy** (path or cycle)
+
+**Nearest Neighbor Any Weighted achieves competitive performance**:
+- TSPA: 72.4k average (comparable to Greedy Weighted at 72.1k and Greedy Cycle at 72.6k)
+- TSPB: 47.7k average (slightly better than Greedy Weighted at 51.0k, approaching Nearest Neighbor any-position at 45.9k)
+- **Best minimum on TSPA**: 70,010 (better than Greedy Weighted's 71,108)
+- **Excellent performance on TSPB**: Ranks 2nd overall, just behind pure Nearest Neighbor any-position
+
+**Key Finding**: The weighted criterion succeeds with **both path and cycle construction**, demonstrating that:
+1. The balance between regret and insertion cost is the critical factor, not the construction strategy
+2. Path-based construction can actually perform slightly better on certain instances (TSPB)
+3. The flexibility of path insertion at endpoints provides practical advantages without sacrificing solution quality
+
+The path-based weighted approach offers a viable alternative to cycle-based construction with competitive or superior performance.

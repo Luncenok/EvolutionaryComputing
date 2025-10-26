@@ -259,6 +259,121 @@ vector<int> greedyRegret2Weighted(int startNode, int selectCount, const vector<v
     return solution;
 }
 
+vector<int> nearestNeighborAnyRegret2(int startNode, int selectCount, const vector<vector<int>>& distance, const vector<int>& costs) {
+    vector<int> solution;
+    vector<bool> selected(distance.size(), false);
+    solution.push_back(startNode);
+    selected[startNode] = true;
+    
+    while (solution.size() < selectCount) {
+        int chooseNode = -1;
+        int choosePos = -1;
+        int bestRegret = -1;
+        int tieBestDelta = INT_MAX;
+        
+        for (int i = 0; i < distance.size(); i++) {
+            if (selected[i]) continue;
+            int best1 = INT_MAX, best2 = INT_MAX;
+            int bestPos = -1;
+            
+            // try inserting at each position (not cycle)
+            for (int pos = 0; pos <= solution.size(); pos++) {
+                int delta = costs[i];
+                if (pos == 0) {
+                    // insert at beginning
+                    delta += distance[i][solution[0]];
+                } else if (pos == solution.size()) {
+                    // insert at end
+                    delta += distance[solution.back()][i];
+                } else {
+                    // insert in middle
+                    delta += distance[solution[pos-1]][i] + distance[i][solution[pos]] - distance[solution[pos-1]][solution[pos]];
+                }
+                
+                if (delta < best1) {
+                    best2 = best1;
+                    best1 = delta;
+                    bestPos = pos;
+                } else if (delta < best2) {
+                    best2 = delta;
+                }
+            }
+            
+            int regret = (best2 == INT_MAX ? 0 : (best2 - best1));
+            if (regret > bestRegret || (regret == bestRegret && best1 < tieBestDelta)) {
+                bestRegret = regret;
+                tieBestDelta = best1;
+                chooseNode = i;
+                choosePos = bestPos;
+            }
+        }
+        
+        solution.insert(solution.begin() + choosePos, chooseNode);
+        selected[chooseNode] = true;
+    }
+    
+    return solution;
+}
+
+vector<int> nearestNeighborAnyRegret2Weighted(int startNode, int selectCount, const vector<vector<int>>& distance, const vector<int>& costs, double wRegret = 1.0, double wBest = 1.0) {
+    vector<int> solution;
+    vector<bool> selected(distance.size(), false);
+    solution.push_back(startNode);
+    selected[startNode] = true;
+    
+    while (solution.size() < selectCount) {
+        int chooseNode = -1;
+        int choosePos = -1;
+        double bestScore = -1e300;
+        int tieBestDelta = INT_MAX;
+        int tieBestRegret = -1;
+        
+        for (int i = 0; i < distance.size(); i++) {
+            if (selected[i]) continue;
+            int best1 = INT_MAX, best2 = INT_MAX;
+            int bestPos = -1;
+            
+            // try inserting at each position (not cycle)
+            for (int pos = 0; pos <= solution.size(); pos++) {
+                int delta = costs[i];
+                if (pos == 0) {
+                    // insert at beginning
+                    delta += distance[i][solution[0]];
+                } else if (pos == solution.size()) {
+                    // insert at end
+                    delta += distance[solution.back()][i];
+                } else {
+                    // insert in middle
+                    delta += distance[solution[pos-1]][i] + distance[i][solution[pos]] - distance[solution[pos-1]][solution[pos]];
+                }
+                
+                if (delta < best1) {
+                    best2 = best1;
+                    best1 = delta;
+                    bestPos = pos;
+                } else if (delta < best2) {
+                    best2 = delta;
+                }
+            }
+            
+            int regret = (best2 == INT_MAX ? 0 : (best2 - best1));
+            double score = wRegret * regret - wBest * best1;
+            if (score > bestScore || (abs(score - bestScore) < 1e-12 && (best1 < tieBestDelta || (best1 == tieBestDelta && regret > tieBestRegret)))) {
+                bestScore = score;
+                tieBestDelta = best1;
+                tieBestRegret = regret;
+                chooseNode = i;
+                choosePos = bestPos;
+            }
+        }
+        
+        solution.insert(solution.begin() + choosePos, chooseNode);
+        selected[chooseNode] = true;
+    }
+    
+    return solution;
+}
+
 void process(const string& filename) {
     // variables
     vector<tuple<int, int, int>> table; // x,y,cost
@@ -409,6 +524,43 @@ void process(const string& filename) {
             if (obj > maxObj) maxObj = obj;
         }
         cout << "Greedy Weighted (2-Regret + BestDelta):\n";
+        cout << "  Min: " << minObj << ", Max: " << maxObj << ", Avg: " << sumObj / n << "\n";
+        cout << "  Best: ";
+        for (int node : bestSol) cout << node << " ";
+        cout << "\n\n";
+    }
+
+    // Nearest Neighbor Any 2-Regret
+    {
+        int minObj = INT_MAX, maxObj = 0, sumObj = 0;
+        vector<int> bestSol;
+        for (int start = 0; start < n; start++) {
+            auto sol = nearestNeighborAnyRegret2(start, selectCount, distance, costs);
+            int obj = calculateObjective(sol, distance, costs);
+            sumObj += obj;
+            if (obj < minObj) { minObj = obj; bestSol = sol; }
+            if (obj > maxObj) maxObj = obj;
+        }
+        cout << "Nearest Neighbor Any 2-Regret:\n";
+        cout << "  Min: " << minObj << ", Max: " << maxObj << ", Avg: " << sumObj / n << "\n";
+        cout << "  Best: ";
+        for (int node : bestSol) cout << node << " ";
+        cout << "\n\n";
+    }
+
+    // Nearest Neighbor Any Weighted (2-regret + best delta)
+    {
+        int minObj = INT_MAX, maxObj = 0, sumObj = 0;
+        vector<int> bestSol;
+        double wRegret = 1.0, wBest = 1.0;
+        for (int start = 0; start < n; start++) {
+            auto sol = nearestNeighborAnyRegret2Weighted(start, selectCount, distance, costs, wRegret, wBest);
+            int obj = calculateObjective(sol, distance, costs);
+            sumObj += obj;
+            if (obj < minObj) { minObj = obj; bestSol = sol; }
+            if (obj > maxObj) maxObj = obj;
+        }
+        cout << "Nearest Neighbor Any Weighted (2-Regret + BestDelta):\n";
         cout << "  Min: " << minObj << ", Max: " << maxObj << ", Avg: " << sumObj / n << "\n";
         cout << "  Best: ";
         for (int node : bestSol) cout << node << " ";
