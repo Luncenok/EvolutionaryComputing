@@ -38,7 +38,7 @@ newCost = dist(prev1, node2) + dist(node2, next1)
 delta = newCost - oldCost
 ```
 
-Special case: Adjacent nodes only change 3 edges instead of 4.
+Special case: Adjacent nodes only change 2 edges instead of 4.
 
 #### 2. Intra-Route: Edge Exchange (Reverse Segment)
 Reverse the segment between positions `pos1` and `pos2`.
