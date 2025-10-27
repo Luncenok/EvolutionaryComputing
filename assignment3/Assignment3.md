@@ -88,6 +88,15 @@ delta = newCost - oldCost
 4. Return solution
 ```
 
+### Randomization Strategy
+
+The greedy local search browses the neighborhood in random order using random sampling without replacement. The total number of moves is approximately 15,000, calculated as:
+- **Inter-route moves**: 100 selected × 100 unselected = 10,000 moves
+- **Intra-route moves**: C(100, 2) = 100 × 99 / 2 = 4,950 moves
+- **Total**: 14,950 moves
+
+Each move is assigned a unique index from 0 to 14,949. We randomly select indices using uniform distribution and track tried moves with a boolean vector. When an index is selected, it is decoded to determine the move type: if index < 10,000 it is an inter-route move, otherwise it is an intra-route move. For inter-route moves, the index is further decoded to identify which position and which unselected node to exchange. For intra-route moves, the index identifies which two positions define the segment to reverse (edges) or swap (nodes)
+
 ### Local Search - Steepest Descent (Edges Exchange)
 ```
 Similar to Nodes Exchange, but for intra-route moves:
@@ -121,15 +130,6 @@ Similar to Nodes Exchange, but for intra-route moves:
 ```
 Similar to Greedy Nodes, but intra-route moves use segment reversal instead of node swaps.
 ```
-
-### Randomization Strategy
-
-The greedy local search browses the neighborhood in random order using random sampling without replacement. The total number of moves is approximately 15,000, calculated as:
-- **Inter-route moves**: 100 selected × 100 unselected = 10,000 moves
-- **Intra-route moves**: C(100, 2) = 100 × 99 / 2 = 4,950 moves
-- **Total**: 14,950 moves
-
-Each move is assigned a unique index from 0 to 14,949. We randomly select indices using uniform distribution and track tried moves with a boolean vector. When an index is selected, it is decoded to determine the move type: if index < 10,000 it is an inter-route move, otherwise it is an intra-route move. For inter-route moves, the index is further decoded to identify which position and which unselected node to exchange. For intra-route moves, the index identifies which two positions define the segment to reverse (edges) or swap (nodes)
 
 ## Key Results
 
