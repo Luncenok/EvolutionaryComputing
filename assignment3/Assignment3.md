@@ -17,6 +17,58 @@ This is a variant of the Traveling Salesman Problem where:
 
 ## Algorithm Pseudocode
 
+### Delta Calculation
+
+Delta represents the change in objective function after applying a move: `delta = newCost - oldCost`  
+If `delta < 0`, the move improves the solution.
+
+#### 1. Intra-Route: Node Exchange (Swap)
+Swap two nodes at positions `pos1` and `pos2` in the tour.
+
+```
+Given: [..., prev1, node1, next1, ..., prev2, node2, next2, ...]
+After: [..., prev1, node2, next1, ..., prev2, node1, next2, ...]
+
+oldCost = dist(prev1, node1) + dist(node1, next1) 
+        + dist(prev2, node2) + dist(node2, next2)
+        
+newCost = dist(prev1, node2) + dist(node2, next1) 
+        + dist(prev2, node1) + dist(node1, next2)
+        
+delta = newCost - oldCost
+```
+
+Special case: Adjacent nodes only change 3 edges instead of 4.
+
+#### 2. Intra-Route: Edge Exchange (Reverse Segment)
+Reverse the segment between positions `pos1` and `pos2`.
+
+```
+Given: [..., pos1, A, B, C, ..., Z, pos2, next, ...]
+After: [..., pos1, Z, ..., C, B, A, pos2, next, ...]
+
+Remove edges: pos1→A and pos2→next
+Add edges:    pos1→pos2 and A→next
+
+oldCost = dist(pos1, A) + dist(pos2, next)
+newCost = dist(pos1, pos2) + dist(A, next)
+delta = newCost - oldCost
+```
+
+Note: Only 2 edges change regardless of segment length (2-opt property).
+
+#### 3. Inter-Route: Node Exchange
+Replace a selected node with an unselected node.
+
+```
+Given: [..., prev, oldNode, next, ...] with cost[oldNode]
+After: [..., prev, newNode, next, ...] with cost[newNode]
+
+oldCost = dist(prev, oldNode) + dist(oldNode, next) + cost[oldNode]
+newCost = dist(prev, newNode) + dist(newNode, next) + cost[newNode]
+delta = newCost - oldCost
+```
+
 ### Local Search - Steepest Descent (Nodes Exchange)
 ```
 1. Start with initial solution
@@ -72,39 +124,12 @@ Similar to Greedy Nodes, but intra-route moves use segment reversal instead of n
 
 ### Randomization Strategy
 
-In the greedy local search version, we use **random sampling without replacement** to ensure proper randomization:
+The greedy local search browses the neighborhood in random order using random sampling without replacement. The total number of moves is approximately 15,000, calculated as:
+- **Inter-route moves**: 100 selected × 100 unselected = 10,000 moves
+- **Intra-route moves**: C(100, 2) = 100 × 99 / 2 = 4,950 moves
+- **Total**: 14,950 moves
 
-```cpp
-// Random sampling without replacement
-std::vector<bool> tried(totalMoves, false);
-std::uniform_int_distribution<> moveDist(0, totalMoves - 1);
-
-while (!improved && triedCount < totalMoves) {
-    // Pick random untried move
-    int moveIdx = moveDist(rng);
-    if (tried[moveIdx]) continue;  // Skip if already tried
-    
-    tried[moveIdx] = true;
-    triedCount++;
-    
-    // Decode move index to specific move (inter or intra)
-    // Evaluate delta and apply if improving
-}
-```
-
-This approach:
-1. Assigns unique index to each move (inter-route: 0 to numInter-1, intra-route: numInter to totalMoves-1)
-2. Randomly samples move indices using uniform distribution
-3. Tracks tried moves with boolean vector to ensure no repetition
-4. Stops immediately when first improving move is found
-
-**Advantages over full shuffle**:
-- No need to create and shuffle 15,000-element vector
-- Stops early when improvement found (doesn't evaluate remaining moves)
-- True random mixing of inter-route and intra-route moves
-- Memory efficient (only boolean tracking array)
-
-**Trade-off**: As more moves are tried, collision probability increases, requiring more random number generation attempts
+Each move is assigned a unique index from 0 to 14,949. We randomly select indices using uniform distribution and track tried moves with a boolean vector. When an index is selected, it is decoded to determine the move type: if index < 10,000 it is an inter-route move, otherwise it is an intra-route move. For inter-route moves, the index is further decoded to identify which position and which unselected node to exchange. For intra-route moves, the index identifies which two positions define the segment to reverse (edges) or swap (nodes)
 
 ## Key Results
 
@@ -189,14 +214,6 @@ This approach:
 
 
 ## Conclusions
-
-### Overall Performance
-
-Local search significantly improves solution quality compared to construction heuristics alone. The best results for both instances were achieved by **LS: Greedy + Steepest + Edges**:
-- **TSPA**: Average objective improved from 72,129 (Greedy Weighted) to **71,460** (0.9% improvement)
-- **TSPB**: Average objective improved from 45,870 (NN Any) to **44,979** (1.9% improvement)
-
-The local search methods with greedy starting solutions consistently produced the best results, achieving objectives competitive with or better than the best construction heuristics, while also significantly reducing variance (smaller max-min range).
 
 ### Impact of Local Search
 

@@ -53,7 +53,7 @@ int deltaReverseSegment(const std::vector<int>& sol, int pos1, int pos2,
     int n = sol.size();
     if (pos1 == pos2 || (pos1 + 1) % n == pos2) return 0;
     
-    // Remove edges at boundaries and add new edges
+    // Remove edges at boundaries and add new edges ---pos1x-----pos2x---- -> ---pos1pos2-----xx----
     int oldCost = distance[sol[pos1]][sol[(pos1 + 1) % n]] + 
                   distance[sol[pos2]][sol[(pos2 + 1) % n]];
     int newCost = distance[sol[pos1]][sol[pos2]] + 
@@ -210,8 +210,8 @@ std::vector<int> localSearchGreedyNodes(
     for (int node : sol) inSolution[node] = true;
     
     int solSize = sol.size();
-    int numIntra = solSize * (solSize - 1) / 2;
-    int numInter = solSize * (n - solSize);
+    int numIntra = solSize * (solSize - 1) / 2; // choose 2 positions from the solution
+    int numInter = solSize * (n - solSize); // choose 1 position from the solution and 1 non-selected node
     int totalMoves = numIntra + numInter;
     
     bool improved = true;
