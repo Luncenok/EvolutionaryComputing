@@ -10,4 +10,5 @@ g++ -std=c++17 -O2 -I. \
     assignment2/greedyRegret2Weighted.cpp \
     assignment2/nearestNeighborAnyRegret2.cpp \
     assignment2/nearestNeighborAnyRegret2Weighted.cpp \
+    assignment3/localSearch.cpp \
     -o main && ./main | tee output.txt

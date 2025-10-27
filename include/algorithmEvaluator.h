@@ -9,6 +9,9 @@ struct AlgorithmResult {
     int minObj;
     int maxObj;
     int avgObj;
+    double minTime;
+    double maxTime;
+    double avgTime;
     std::vector<int> bestSolution;
 };
 

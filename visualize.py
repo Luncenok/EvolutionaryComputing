@@ -31,31 +31,32 @@ def parse_output_file(filename):
     
     with open(filename, 'r') as f:
         for line in f:
+            original_line = line
             line = line.strip()
             
-            # Match instance name
-            instance_match = re.match(r'=-=-= (\w+)\.csv =-=-=', line)
+            # Match instance name (format: "=-=-= input/TSPA.csv =-=-=")
+            instance_match = re.match(r'=-=-= (?:input/)?(\w+)\.csv =-=-=', line)
             if instance_match:
                 current_instance = instance_match.group(1)
                 solutions[current_instance] = {}
                 continue
             
-            # Match method name
-            if line.endswith(':') and current_instance:
+            # Match method name (not indented, ends with colon)
+            if line.endswith(':') and current_instance and not original_line.startswith(' '):
                 current_method = line[:-1]
                 solutions[current_instance][current_method] = {}
                 continue
             
-            # Match Min value
-            if line.startswith('Min:') and current_method:
-                min_match = re.search(r'Min: (\d+)', line)
+            # Match Objective line (new format: "  Objective: Min=12345, Max=...")
+            if line.startswith('Objective:') and current_method:
+                min_match = re.search(r'Min=(\d+)', line)
                 if min_match:
                     solutions[current_instance][current_method]['objective'] = int(min_match.group(1))
                 continue
             
             # Match Best solution
             if line.startswith('Best:') and current_method:
-                solution_str = line.replace('Best:', '').strip()
+                solution_str = line.split('Best:')[1].strip()
                 solution = [int(x) for x in solution_str.split()]
                 solutions[current_instance][current_method]['solution'] = solution
                 continue

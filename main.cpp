@@ -17,6 +17,7 @@
 #include "include/nearestNeighborAnyRegret2.h"
 #include "include/nearestNeighborAnyRegret2Weighted.h"
 #include "include/algorithmEvaluator.h"
+#include "include/localSearch.h"
 
 void process(const std::string& filename) {
     std::vector<std::tuple<int, int, int>> table;
@@ -96,6 +97,87 @@ void process(const std::string& filename) {
     auto resultNNAW = evaluateAlgorithm("Nearest Neighbor Any Weighted (2-Regret + BestDelta)", n, selectCount, distance, costs,
         [&](int start) { return nearestNeighborAnyRegret2Weighted(start, selectCount, distance, costs, wRegret, wBest); });
     printAlgorithmResult("Nearest Neighbor Any Weighted (2-Regret + BestDelta)", resultNNAW);
+    
+    // Find best greedy heuristic for starting solutions
+    int bestGreedyObj = std::min({resultNNAny.avgObj, resultGC.avgObj, resultGR2.avgObj, resultGW.avgObj, resultNNAR2.avgObj, resultNNAW.avgObj});
+    std::function<std::vector<int>(int)> bestGreedyFunc;
+    if (bestGreedyObj == resultNNAny.avgObj) {
+        bestGreedyFunc = [&](int start) { return nearestNeighborAny(start, selectCount, distance, costs); };
+    } else if (bestGreedyObj == resultGW.avgObj) {
+        bestGreedyFunc = [&](int start) { return greedyRegret2Weighted(start, selectCount, distance, costs, wRegret, wBest); };
+    } else if (bestGreedyObj == resultNNAW.avgObj) {
+        bestGreedyFunc = [&](int start) { return nearestNeighborAnyRegret2Weighted(start, selectCount, distance, costs, wRegret, wBest); };
+    } else if (bestGreedyObj == resultGC.avgObj) {
+        bestGreedyFunc = [&](int start) { return greedyCycle(start, selectCount, distance, costs); };
+    } else if (bestGreedyObj == resultGR2.avgObj) {
+        bestGreedyFunc = [&](int start) { return greedyRegret2(start, selectCount, distance, costs); };
+    } else {
+        bestGreedyFunc = [&](int start) { return nearestNeighborAnyRegret2(start, selectCount, distance, costs); };
+    }
+    
+    // Local Search: Random start + Steepest + Nodes
+    auto resultLSRandomSteepestNodes = evaluateAlgorithm("LS: Random + Steepest + Nodes", n, selectCount, distance, costs,
+        [&](int start) { 
+            auto initial = randomSolution(start, n, selectCount, rng);
+            return localSearchSteepestNodes(initial, distance, costs, n);
+        });
+    printAlgorithmResult("LS: Random + Steepest + Nodes", resultLSRandomSteepestNodes);
+    
+    // Local Search: Random start + Steepest + Edges
+    auto resultLSRandomSteepestEdges = evaluateAlgorithm("LS: Random + Steepest + Edges", n, selectCount, distance, costs,
+        [&](int start) { 
+            auto initial = randomSolution(start, n, selectCount, rng);
+            return localSearchSteepestEdges(initial, distance, costs, n);
+        });
+    printAlgorithmResult("LS: Random + Steepest + Edges", resultLSRandomSteepestEdges);
+    
+    // Local Search: Random start + Greedy + Nodes
+    auto resultLSRandomGreedyNodes = evaluateAlgorithm("LS: Random + Greedy + Nodes", n, selectCount, distance, costs,
+        [&](int start) { 
+            auto initial = randomSolution(start, n, selectCount, rng);
+            return localSearchGreedyNodes(initial, distance, costs, n, rng);
+        });
+    printAlgorithmResult("LS: Random + Greedy + Nodes", resultLSRandomGreedyNodes);
+    
+    // Local Search: Random start + Greedy + Edges
+    auto resultLSRandomGreedyEdges = evaluateAlgorithm("LS: Random + Greedy + Edges", n, selectCount, distance, costs,
+        [&](int start) { 
+            auto initial = randomSolution(start, n, selectCount, rng);
+            return localSearchGreedyEdges(initial, distance, costs, n, rng);
+        });
+    printAlgorithmResult("LS: Random + Greedy + Edges", resultLSRandomGreedyEdges);
+    
+    // Local Search: Greedy start + Steepest + Nodes
+    auto resultLSGreedySteepestNodes = evaluateAlgorithm("LS: Greedy + Steepest + Nodes", n, selectCount, distance, costs,
+        [&](int start) { 
+            auto initial = bestGreedyFunc(start);
+            return localSearchSteepestNodes(initial, distance, costs, n);
+        });
+    printAlgorithmResult("LS: Greedy + Steepest + Nodes", resultLSGreedySteepestNodes);
+    
+    // Local Search: Greedy start + Steepest + Edges
+    auto resultLSGreedySteepestEdges = evaluateAlgorithm("LS: Greedy + Steepest + Edges", n, selectCount, distance, costs,
+        [&](int start) { 
+            auto initial = bestGreedyFunc(start);
+            return localSearchSteepestEdges(initial, distance, costs, n);
+        });
+    printAlgorithmResult("LS: Greedy + Steepest + Edges", resultLSGreedySteepestEdges);
+    
+    // Local Search: Greedy start + Greedy + Nodes
+    auto resultLSGreedyGreedyNodes = evaluateAlgorithm("LS: Greedy + Greedy + Nodes", n, selectCount, distance, costs,
+        [&](int start) { 
+            auto initial = bestGreedyFunc(start);
+            return localSearchGreedyNodes(initial, distance, costs, n, rng);
+        });
+    printAlgorithmResult("LS: Greedy + Greedy + Nodes", resultLSGreedyGreedyNodes);
+    
+    // Local Search: Greedy start + Greedy + Edges
+    auto resultLSGreedyGreedyEdges = evaluateAlgorithm("LS: Greedy + Greedy + Edges", n, selectCount, distance, costs,
+        [&](int start) { 
+            auto initial = bestGreedyFunc(start);
+            return localSearchGreedyEdges(initial, distance, costs, n, rng);
+        });
+    printAlgorithmResult("LS: Greedy + Greedy + Edges", resultLSGreedyGreedyEdges);
 }
 
 int main() {
