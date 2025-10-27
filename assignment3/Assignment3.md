@@ -45,7 +45,7 @@ Reverse the segment between positions `pos1` and `pos2`.
 
 ```
 Given: [..., pos1, A, B, C, ..., Z, pos2, next, ...]
-After: [..., pos1, Z, ..., C, B, A, pos2, next, ...]
+After: [..., pos1, pos2, Z, ..., C, B, A, next, ...]
 
 Remove edges: pos1→A and pos2→next
 Add edges:    pos1→pos2 and A→next
