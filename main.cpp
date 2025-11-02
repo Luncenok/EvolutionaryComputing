@@ -6,6 +6,7 @@
 #include <cmath>
 #include <random>
 #include <climits>
+#include <algorithm>
 #include "include/constants.h"
 #include "include/calculateObjective.h"
 #include "include/randomSolution.h"
@@ -18,6 +19,7 @@
 #include "include/nearestNeighborAnyRegret2Weighted.h"
 #include "include/algorithmEvaluator.h"
 #include "include/localSearch.h"
+#include "include/candidateMoves.h"
 
 void process(const std::string& filename) {
     std::vector<std::tuple<int, int, int>> table;
@@ -116,68 +118,97 @@ void process(const std::string& filename) {
     }
     
     // Local Search: Random start + Steepest + Nodes
-    auto resultLSRandomSteepestNodes = evaluateAlgorithm("LS: Random + Steepest + Nodes", n, selectCount, distance, costs,
+    auto resultLSRandomSteepestNodes = evaluateAlgorithm("LS Random + Steepest + Nodes", n, selectCount, distance, costs,
         [&](int start) { 
             auto initial = randomSolution(start, n, selectCount, rng);
             return localSearchSteepestNodes(initial, distance, costs, n);
         });
-    printAlgorithmResult("LS: Random + Steepest + Nodes", resultLSRandomSteepestNodes);
-    
-    // Local Search: Random start + Steepest + Edges
-    auto resultLSRandomSteepestEdges = evaluateAlgorithm("LS: Random + Steepest + Edges", n, selectCount, distance, costs,
-        [&](int start) { 
-            auto initial = randomSolution(start, n, selectCount, rng);
-            return localSearchSteepestEdges(initial, distance, costs, n);
-        });
-    printAlgorithmResult("LS: Random + Steepest + Edges", resultLSRandomSteepestEdges);
+    printAlgorithmResult("LS Random + Steepest + Nodes", resultLSRandomSteepestNodes);
     
     // Local Search: Random start + Greedy + Nodes
-    auto resultLSRandomGreedyNodes = evaluateAlgorithm("LS: Random + Greedy + Nodes", n, selectCount, distance, costs,
+    auto resultLSRandomGreedyNodes = evaluateAlgorithm("LS Random + Greedy + Nodes", n, selectCount, distance, costs,
         [&](int start) { 
             auto initial = randomSolution(start, n, selectCount, rng);
             return localSearchGreedyNodes(initial, distance, costs, n, rng);
         });
-    printAlgorithmResult("LS: Random + Greedy + Nodes", resultLSRandomGreedyNodes);
+    printAlgorithmResult("LS Random + Greedy + Nodes", resultLSRandomGreedyNodes);
     
     // Local Search: Random start + Greedy + Edges
-    auto resultLSRandomGreedyEdges = evaluateAlgorithm("LS: Random + Greedy + Edges", n, selectCount, distance, costs,
+    auto resultLSRandomGreedyEdges = evaluateAlgorithm("LS Random + Greedy + Edges", n, selectCount, distance, costs,
         [&](int start) { 
             auto initial = randomSolution(start, n, selectCount, rng);
             return localSearchGreedyEdges(initial, distance, costs, n, rng);
         });
-    printAlgorithmResult("LS: Random + Greedy + Edges", resultLSRandomGreedyEdges);
+    printAlgorithmResult("LS Random + Greedy + Edges", resultLSRandomGreedyEdges);
     
     // Local Search: Greedy start + Steepest + Nodes
-    auto resultLSGreedySteepestNodes = evaluateAlgorithm("LS: Greedy + Steepest + Nodes", n, selectCount, distance, costs,
+    auto resultLSGreedySteepestNodes = evaluateAlgorithm("LS Greedy + Steepest + Nodes", n, selectCount, distance, costs,
         [&](int start) { 
             auto initial = bestGreedyFunc(start);
             return localSearchSteepestNodes(initial, distance, costs, n);
         });
-    printAlgorithmResult("LS: Greedy + Steepest + Nodes", resultLSGreedySteepestNodes);
+    printAlgorithmResult("LS Greedy + Steepest + Nodes", resultLSGreedySteepestNodes);
     
     // Local Search: Greedy start + Steepest + Edges
-    auto resultLSGreedySteepestEdges = evaluateAlgorithm("LS: Greedy + Steepest + Edges", n, selectCount, distance, costs,
+    auto resultLSGreedySteepestEdges = evaluateAlgorithm("LS Greedy + Steepest + Edges", n, selectCount, distance, costs,
         [&](int start) { 
             auto initial = bestGreedyFunc(start);
             return localSearchSteepestEdges(initial, distance, costs, n);
         });
-    printAlgorithmResult("LS: Greedy + Steepest + Edges", resultLSGreedySteepestEdges);
+    printAlgorithmResult("LS Greedy + Steepest + Edges", resultLSGreedySteepestEdges);
     
     // Local Search: Greedy start + Greedy + Nodes
-    auto resultLSGreedyGreedyNodes = evaluateAlgorithm("LS: Greedy + Greedy + Nodes", n, selectCount, distance, costs,
+    auto resultLSGreedyGreedyNodes = evaluateAlgorithm("LS Greedy + Greedy + Nodes", n, selectCount, distance, costs,
         [&](int start) { 
             auto initial = bestGreedyFunc(start);
             return localSearchGreedyNodes(initial, distance, costs, n, rng);
         });
-    printAlgorithmResult("LS: Greedy + Greedy + Nodes", resultLSGreedyGreedyNodes);
+    printAlgorithmResult("LS Greedy + Greedy + Nodes", resultLSGreedyGreedyNodes);
     
     // Local Search: Greedy start + Greedy + Edges
-    auto resultLSGreedyGreedyEdges = evaluateAlgorithm("LS: Greedy + Greedy + Edges", n, selectCount, distance, costs,
+    auto resultLSGreedyGreedyEdges = evaluateAlgorithm("LS Greedy + Greedy + Edges", n, selectCount, distance, costs,
         [&](int start) { 
             auto initial = bestGreedyFunc(start);
             return localSearchGreedyEdges(initial, distance, costs, n, rng);
         });
-    printAlgorithmResult("LS: Greedy + Greedy + Edges", resultLSGreedyGreedyEdges);
+    printAlgorithmResult("LS Greedy + Greedy + Edges", resultLSGreedyGreedyEdges);
+    
+    // Local Search: Random start + Steepest + Edges
+    auto resultLSRandomSteepestEdges = evaluateAlgorithm("LS Random + Steepest + Edges", n, selectCount, distance, costs,
+        [&](int start) { 
+            auto initial = randomSolution(start, n, selectCount, rng);
+            return localSearchSteepestEdges(initial, distance, costs, n);
+        });
+    printAlgorithmResult("LS Random + Steepest + Edges", resultLSRandomSteepestEdges);
+        
+    // Candidate Moves with different k values
+    auto resultCandidatesK5 = evaluateAlgorithm("Candidates + Random + Steepest + Edges (k=5)", n, selectCount, distance, costs,
+        [&](int start) { 
+            auto initial = randomSolution(start, n, selectCount, rng);
+            return localSearchSteepestEdgesCandidates(initial, distance, costs, n, 5);
+        });
+    printAlgorithmResult("Candidates + Random + Steepest + Edges (k=5)", resultCandidatesK5);
+    
+    auto resultCandidatesK10 = evaluateAlgorithm("Candidates + Random + Steepest + Edges (k=10)", n, selectCount, distance, costs,
+        [&](int start) { 
+            auto initial = randomSolution(start, n, selectCount, rng);
+            return localSearchSteepestEdgesCandidates(initial, distance, costs, n, 10);
+        });
+    printAlgorithmResult("Candidates + Random + Steepest + Edges (k=10)", resultCandidatesK10);
+    
+    auto resultCandidatesK15 = evaluateAlgorithm("Candidates + Random + Steepest + Edges (k=15)", n, selectCount, distance, costs,
+        [&](int start) { 
+            auto initial = randomSolution(start, n, selectCount, rng);
+            return localSearchSteepestEdgesCandidates(initial, distance, costs, n, 15);
+        });
+    printAlgorithmResult("Candidates + Random + Steepest + Edges (k=15)", resultCandidatesK15);
+    
+    auto resultCandidatesK20 = evaluateAlgorithm("Candidates + Random + Steepest + Edges (k=20)", n, selectCount, distance, costs,
+        [&](int start) { 
+            auto initial = randomSolution(start, n, selectCount, rng);
+            return localSearchSteepestEdgesCandidates(initial, distance, costs, n, 20);
+        });
+    printAlgorithmResult("Candidates + Random + Steepest + Edges (k=20)", resultCandidatesK20);
 }
 
 int main() {

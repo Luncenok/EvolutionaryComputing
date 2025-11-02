@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <climits>
 #include <numeric>
+#include <cmath>
 
 // Calculate delta for swapping two nodes in the cycle (intra-route)
 int deltaSwapNodes(const std::vector<int>& sol, int pos1, int pos2, 
@@ -209,16 +210,24 @@ std::vector<int> localSearchGreedyNodes(
     std::vector<bool> inSolution(n, false);
     for (int node : sol) inSolution[node] = true;
     
-    int solSize = sol.size();
-    int numIntra = solSize * (solSize - 1) / 2; // choose 2 positions from the solution
-    int numInter = solSize * (n - solSize); // choose 1 position from the solution and 1 non-selected node
-    int totalMoves = numIntra + numInter;
-    
     bool improved = true;
     while (improved) {
         improved = false;
         
-        // Random sampling without replacement - no vector creation!
+        int solSize = sol.size();
+        
+        // Build list of non-selected nodes (once per iteration)
+        std::vector<int> nonSelected;
+        nonSelected.reserve(n - solSize);
+        for (int i = 0; i < n; i++) {
+            if (!inSolution[i]) nonSelected.push_back(i);
+        }
+        
+        int numIntra = solSize * (solSize - 1) / 2;
+        int numInter = solSize * nonSelected.size();
+        int totalMoves = numIntra + numInter;
+        
+        // Random sampling without replacement
         std::vector<bool> tried(totalMoves, false);
         int triedCount = 0;
         std::uniform_int_distribution<> moveDist(0, totalMoves - 1);
@@ -231,26 +240,13 @@ std::vector<int> localSearchGreedyNodes(
             tried[moveIdx] = true;
             triedCount++;
             
-            bool isInter = (moveIdx < numInter);
             int delta;
             
-            if (isInter) {
-                // Inter-route move
-                int pos = moveIdx / (n - solSize);
-                int nodeIdx = moveIdx % (n - solSize);
-                
-                // Find the nodeIdx-th non-selected node
-                int node = -1;
-                int count = 0;
-                for (int i = 0; i < n; i++) {
-                    if (!inSolution[i]) {
-                        if (count == nodeIdx) {
-                            node = i;
-                            break;
-                        }
-                        count++;
-                    }
-                }
+            if (moveIdx < numInter) {
+                // Inter-route move: decode to (pos, nodeIdx)
+                int pos = moveIdx / nonSelected.size();
+                int nodeIdx = moveIdx % nonSelected.size();
+                int node = nonSelected[nodeIdx];
                 
                 delta = deltaExchangeNodes(sol, pos, node, distance, costs);
                 if (delta < 0) {
@@ -260,27 +256,21 @@ std::vector<int> localSearchGreedyNodes(
                     improved = true;
                 }
             } else {
-                // Intra-route move
+                // Intra-route move: decode to (i, j) using inverse triangular number formula
                 int pairIdx = moveIdx - numInter;
-                int i = 0, j = 0;
                 
-                // Convert linear index to (i, j) pair
-                int count = 0;
-                bool found = false;
-                for (i = 0; i < solSize && !found; i++) {
-                    for (j = i + 1; j < solSize; j++) {
-                        if (count == pairIdx) {
-                            found = true;
-                            break;
-                        }
-                        count++;
+                // Formula: given index k, find (i,j) where k = i*n - i*(i+1)/2 + (j-i-1)
+                // Solve: i = floor((2n+1 - sqrt((2n+1)^2 - 8k)) / 2)
+                int i = (int)((2*solSize + 1 - sqrt((2*solSize + 1)*(2*solSize + 1) - 8.0*pairIdx)) / 2);
+                int j = pairIdx - (i * solSize - i * (i + 1) / 2) + i + 1;
+                
+                // Bounds check to prevent segfault
+                if (i >= 0 && i < solSize && j > i && j < solSize) {
+                    delta = deltaSwapNodes(sol, i, j, distance);
+                    if (delta < 0) {
+                        std::swap(sol[i], sol[j]);
+                        improved = true;
                     }
-                }
-                
-                delta = deltaSwapNodes(sol, i, j, distance);
-                if (delta < 0) {
-                    std::swap(sol[i], sol[j]);
-                    improved = true;
                 }
             }
         }
@@ -300,16 +290,24 @@ std::vector<int> localSearchGreedyEdges(
     std::vector<bool> inSolution(n, false);
     for (int node : sol) inSolution[node] = true;
     
-    int solSize = sol.size();
-    int numIntra = solSize * (solSize - 1) / 2;
-    int numInter = solSize * (n - solSize);
-    int totalMoves = numIntra + numInter;
-    
     bool improved = true;
     while (improved) {
         improved = false;
         
-        // Random sampling without replacement - no vector creation!
+        int solSize = sol.size();
+        
+        // Build list of non-selected nodes (once per iteration)
+        std::vector<int> nonSelected;
+        nonSelected.reserve(n - solSize);
+        for (int i = 0; i < n; i++) {
+            if (!inSolution[i]) nonSelected.push_back(i);
+        }
+        
+        int numIntra = solSize * (solSize - 1) / 2;
+        int numInter = solSize * nonSelected.size();
+        int totalMoves = numIntra + numInter;
+        
+        // Random sampling without replacement
         std::vector<bool> tried(totalMoves, false);
         int triedCount = 0;
         std::uniform_int_distribution<> moveDist(0, totalMoves - 1);
@@ -322,26 +320,13 @@ std::vector<int> localSearchGreedyEdges(
             tried[moveIdx] = true;
             triedCount++;
             
-            bool isInter = (moveIdx < numInter);
             int delta;
             
-            if (isInter) {
-                // Inter-route move
-                int pos = moveIdx / (n - solSize);
-                int nodeIdx = moveIdx % (n - solSize);
-                
-                // Find the nodeIdx-th non-selected node
-                int node = -1;
-                int count = 0;
-                for (int i = 0; i < n; i++) {
-                    if (!inSolution[i]) {
-                        if (count == nodeIdx) {
-                            node = i;
-                            break;
-                        }
-                        count++;
-                    }
-                }
+            if (moveIdx < numInter) {
+                // Inter-route move: decode to (pos, nodeIdx)
+                int pos = moveIdx / nonSelected.size();
+                int nodeIdx = moveIdx % nonSelected.size();
+                int node = nonSelected[nodeIdx];
                 
                 delta = deltaExchangeNodes(sol, pos, node, distance, costs);
                 if (delta < 0) {
@@ -352,26 +337,19 @@ std::vector<int> localSearchGreedyEdges(
                 }
             } else {
                 // Intra-route move: edges exchange (segment reversal)
+                // Decode to (i, j) using inverse triangular number formula
                 int pairIdx = moveIdx - numInter;
-                int i = 0, j = 0;
                 
-                // Convert linear index to (i, j) pair
-                int count = 0;
-                bool found = false;
-                for (i = 0; i < solSize && !found; i++) {
-                    for (j = i + 1; j < solSize; j++) {
-                        if (count == pairIdx) {
-                            found = true;
-                            break;
-                        }
-                        count++;
+                int i = (int)((2*solSize + 1 - sqrt((2*solSize + 1)*(2*solSize + 1) - 8.0*pairIdx)) / 2);
+                int j = pairIdx - (i * solSize - i * (i + 1) / 2) + i + 1;
+                
+                // Bounds check to prevent segfault
+                if (i >= 0 && i < solSize && j > i && j < solSize) {
+                    delta = deltaReverseSegment(sol, i, j, distance);
+                    if (delta < 0) {
+                        std::reverse(sol.begin() + i + 1, sol.begin() + j + 1);
+                        improved = true;
                     }
-                }
-                
-                delta = deltaReverseSegment(sol, i, j, distance);
-                if (delta < 0) {
-                    std::reverse(sol.begin() + i + 1, sol.begin() + j + 1);
-                    improved = true;
                 }
             }
         }
