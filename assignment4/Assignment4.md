@@ -25,132 +25,120 @@ Improve the time efficiency of steepest local search using **candidate moves**. 
 
 ## Algorithm Pseudocode
 
+### Delta Calculation
+
+Delta represents the change in objective function after applying a move: `delta = newCost - oldCost`  
+If `delta < 0`, the move improves the solution.
+
+#### 1. Intra-Route: Edge Exchange (Reverse Segment)
+Reverse the segment between positions `pos1` and `pos2`.
+
+```python
+Given: [..., pos1, A, B, C, ..., Z, pos2, next, ...]
+After: [..., pos1, pos2, Z, ..., C, B, A, next, ...]
+
+Remove edges: pos1→A and pos2→next
+Add edges:    pos1→pos2 and A→next
+
+oldCost = dist(pos1, A) + dist(pos2, next)
+newCost = dist(pos1, pos2) + dist(A, next)
+delta = newCost - oldCost
+```
+
+Note: Only 2 edges change regardless of segment length (2-opt property).
+
+#### 2. Inter-Route: Node Exchange
+Replace a selected node with an unselected node.
+
+```python
+Given: [..., prev, oldNode, next, ...] with cost[oldNode]
+After: [..., prev, newNode, next, ...] with cost[newNode]
+
+oldCost = dist(prev, oldNode) + dist(oldNode, next) + cost[oldNode]
+newCost = dist(prev, newNode) + dist(newNode, next) + cost[newNode]
+delta = newCost - oldCost
+```
+
 ### Building Nearest Neighbors
 
-For each vertex, determine k=10 other "nearest" vertices based on:
-- Distance metric: `distance[i][j] + cost[j]`
-- This combines edge length and vertex cost
+For each node, precompute k nearest neighbors based on combined metric: `distance[i][j] + cost[j]`
 
 ```python
 buildNearestNeighbors(n, distance, costs, k):
-    for each node i from 0 to n-1:
+    nearestNeighbors = array of size n
+    
+    For each node i from 0 to n-1:
         neighbors = []
-        for each node j != i:
+        
+        For each node j != i:
             combinedCost = distance[i][j] + costs[j]
             neighbors.append((combinedCost, j))
         
-        sort neighbors by combinedCost
-        nearestNeighbors[i] = first k neighbors
+        Sort neighbors by combinedCost (ascending)
+        nearestNeighbors[i] = first k nodes from sorted neighbors
     
-    return nearestNeighbors
+    Return nearestNeighbors
 ```
 
 ### Candidate Edge Definition
 
-An edge (u, v) is a **candidate edge** if:
-- Node v is in u's k nearest neighbors, OR
-- Node u is in v's k nearest neighbors
+An edge `(u, v)` is a **candidate edge** if and only if:
+- Node `v` is in `u`'s k nearest neighbors, **OR**
+- Node `u` is in `v`'s k nearest neighbors
 
-### Candidate Moves - Steepest Local Search
+This symmetric definition ensures we don't miss potentially good moves.
 
-**Key principle**: Only evaluate moves that introduce at least one candidate edge.
+### Local Search - Steepest Descent with Candidate Moves
 
-#### Intra-route (Edges Exchange / 2-opt)
-For each selected node i:
-- For each nearest neighbor j of i that is also selected:
-  - Evaluate segment reversal between positions of i and j
-  - The reversal introduces two new edges: (pos1, pos2) and (next1, next2)
-  - Only evaluate if at least one of these edges is a candidate edge
+**Key principle**: Only evaluate moves that introduce at least one candidate edge. This dramatically reduces the neighborhood size from O(n²) to O(nk).
 
-#### Inter-route (Node Exchange)
-For each selected node at position pos:
-- For each nearest neighbor j of the current node that is NOT selected:
-  - Evaluate exchanging current node with j
-  - The exchange introduces edges: (prev, j) and (j, next)
-  - Only evaluate if at least one of these edges is a candidate edge
-- Also check nodes that have the current node as their nearest neighbor
+#### Understanding Candidate Move Selection
+
+**For 2-opt (intra-route)**: Reversing segment between positions `i` and `j` introduces exactly 2 new edges:
+1. Edge `(sol[i], sol[j])` — connects the positions that define the segment boundaries
+2. Edge `(sol[i+1], sol[j+1])` — connects the nodes after the boundaries
+
+We evaluate the move if **at least one** of these two edges is a candidate edge.
+
+**For node exchange (inter-route)**: Replacing `sol[pos]` with `newNode` introduces exactly 2 new edges:
+1. Edge `(sol[prev], newNode)` — connects predecessor to new node
+2. Edge `(newNode, sol[next])` — connects new node to successor
+
+We evaluate the exchange if **at least one** of these two edges is a candidate edge.
+
+#### Pseudocode
 
 ```python
 localSearchSteepestEdgesCandidates(initial, distance, costs, n, k):
-    sol = initial
-    inSolution = mark nodes in solution
-    nearestNeighbors = buildNearestNeighbors(n, distance, costs, k)
-    nodePosition = map from node to its position in sol
-    
-    while improvement found:
-        bestDelta = 0
-        bestMove = null
-        
-        # Intra-route: edges exchange with candidate moves
-        for each position i in sol:
-            node_i = sol[i]
-            for each neighbor in nearestNeighbors[node_i]:
-                if neighbor is selected:
-                    j = position of neighbor
-                    if move (i, j) introduces candidate edge:
-                        delta = deltaReverseSegment(sol, i, j, distance)
-                        if delta < bestDelta:
-                            remember this move
-        
-        # Inter-route: node exchange with candidate moves
-        for each position pos in sol:
-            currentNode = sol[pos]
-            for each neighbor in nearestNeighbors[currentNode]:
-                if neighbor is NOT selected:
-                    if exchange introduces candidate edge:
-                        delta = deltaExchangeNodes(sol, pos, neighbor, distance, costs)
-                        if delta < bestDelta:
-                            remember this move
-            
-            # Also check reverse relationship
-            for each node that has currentNode as nearest neighbor:
-                if node is NOT selected:
-                    if exchange introduces candidate edge:
-                        delta = deltaExchangeNodes(sol, pos, node, distance, costs)
-                        if delta < bestDelta:
-                            remember this move
-        
-        if bestDelta < 0:
-            apply best move
-            update data structures
-        else:
-            break
-    
-    return sol
+    1. Start with initial solution
+    2. Build nearest neighbors: nearestNeighbors = buildNearestNeighbors(n, distance, costs, k)
+    3. Mark nodes in solution and create position map
+    4. While improvement found:
+       a. bestDelta = 0
+       b. For each position i in solution (intra-route):
+          - For each neighbor in nearestNeighbors[sol[i]] that is selected:
+            If move introduces candidate edge:
+              Calculate delta for reversing segment between i and neighbor position
+              If delta < bestDelta: remember this move
+          - For each neighbor in nearestNeighbors[sol[i+1]] that is selected:
+            If move introduces candidate edge:
+              Calculate delta for reversing segment
+              If delta < bestDelta: remember this move
+       c. For each position pos in solution (inter-route):
+          - For each neighbor in nearestNeighbors[sol[prev]] that is NOT selected:
+            Calculate delta for exchanging sol[pos] with neighbor
+            If delta < bestDelta: remember this move
+          - For each neighbor in nearestNeighbors[sol[next]] that is NOT selected:
+            Calculate delta for exchanging sol[pos] with neighbor
+            If delta < bestDelta: remember this move
+       d. If bestDelta < 0:
+          Apply best move and update data structures
+       e. Else:
+          Stop (no improvement found)
+    5. Return solution
 ```
 
-## Implementation Details
-
-### Time Complexity Analysis
-
-**Without candidate moves** (baseline steepest):
-- Intra-route: O(n²) moves per iteration
-- Inter-route: O(n²) moves per iteration
-- Total per iteration: O(n²)
-
-**With candidate moves**:
-- Building nearest neighbors: O(n² log k) one-time cost
-- Intra-route: O(nk) moves per iteration (n selected × k neighbors)
-- Inter-route: O(nk) moves per iteration (n selected × k neighbors)
-- Total per iteration: O(nk) where k << n
-
-For n=200, k=10:
-- Baseline: ~10,000 moves per iteration
-- Candidate moves: ~1,000 moves per iteration (10× reduction)
-
-### Data Structures
-
-1. **Nearest neighbors**: `vector<vector<int>>` - precomputed, indexed by node
-2. **Position map**: `vector<int>` - maps node ID to its position in solution (for O(1) lookup)
-3. **In-solution flag**: `vector<bool>` - marks which nodes are selected
-
-## Experimental Setup
-
-- **Starting solutions**: Random (200 different starting nodes, one per iteration)
-- **Baseline comparison**: "LS: Random + Steepest + Edges" from Assignment 3 (TSPA: 73,859 avg, 16.2 ms; TSPB: 48,334 avg, 16.3 ms)
-- **Candidate moves**: Test with k ∈ {5, 10, 15, 20}
-- **Iterations**: 200 runs for each method
-- **Metrics**: Objective value (min/max/avg) and time (min/max/avg)
+**Key difference from baseline**: Only evaluate O(nk) candidate moves per iteration instead of O(n²) all moves.
 
 ## Key Results
 
@@ -228,77 +216,10 @@ For n=200, k=10:
 
 ## Conclusions
 
-### Time Efficiency - Candidate moves are FASTER than baseline
+Candidate moves reduce running time by restricting the neighborhood from O(n²) to O(nk) moves per iteration.
 
-Comparing against Assignment 3 baseline (Random + Steepest + Edges):
+**Speed improvement**: Candidate moves are 1.5-3.9× faster than baseline steepest descent, depending on k.
 
-**TSPA (200 nodes):**
-- **Baseline (no candidates)**: 16.20 ms average, 73,859 objective
-- **k=5**: 4.18 ms average (**3.9× faster, -74%**)
-- **k=10**: 6.16 ms average (**2.6× faster, -62%**)
-- **k=15**: 8.01 ms average (**2.0× faster, -51%**)
-- **k=20**: 9.96 ms average (**1.6× faster, -39%**)
+**Quality trade-off**: Solution quality is slightly worse (0.8-13.9% depending on k). Smaller k gives better speedup but worse quality.
 
-**TSPB (200 nodes):**
-- **Baseline (no candidates)**: 16.31 ms average, 48,334 objective
-- **k=5**: 4.49 ms average (**3.6× faster, -72%**)
-- **k=10**: 6.47 ms average (**2.5× faster, -60%**)
-- **k=15**: 8.42 ms average (**1.9× faster, -48%**)
-- **k=20**: 10.89 ms average (**1.5× faster, -33%**)
-
-**Success**: Candidate moves achieve significant speedups (1.5-3.9×) compared to baseline steepest local search.
-
-**Explanations:**
-1. **Reduced move evaluations**: Restricting to O(nk) candidate moves instead of O(n²) significantly reduces computation per iteration
-2. **k << n benefit**: With k ∈ {5, 10, 15, 20} and n=100 selected nodes, we evaluate 500-2,000 moves vs ~10,000 in baseline
-3. **Precomputation pays off**: The one-time O(n² log k) cost of building nearest neighbors is amortized over many iterations
-4. **Smaller k = faster**: Time scales with k, confirming that the reduction in moves evaluated is the primary speedup factor
-
-### Solution Quality - Trade-off between speed and quality
-
-Comparing candidate moves quality against baseline:
-
-**TSPA Quality vs Baseline (73,859):**
-- **k=5**: 84,105 average (**+13.9% worse**)
-- **k=10**: 77,575 average (**+5.0% worse**)
-- **k=15**: 75,396 average (**+2.1% worse**)
-- **k=20**: 74,440 average (**+0.8% worse**)
-
-**TSPB Quality vs Baseline (48,334):**
-- **k=5**: 50,012 average (**+3.5% worse**)
-- **k=10**: 48,300 average (**-0.07% better, essentially same**)
-- **k=15**: 48,537 average (**+0.4% worse**)
-- **k=20**: 48,443 average (**+0.2% worse**)
-
-**Tradeoff observed**: Smaller k restricts the neighborhood more aggressively, leading to:
-1. Faster execution but potentially worse local optima (some good moves excluded)
-2. Quality degradation inversely proportional to k (more restrictive = worse quality)
-3. TSPB shows better quality preservation than TSPA (k=10 matches baseline quality)
-4. Larger k values (15-20) provide good balance between speed and quality
-
-### Parameter Selection (k) - Depends on priorities
-
-Candidate moves provide a **speed vs quality trade-off**:
-
-**Analysis by k value:**
-- **k=5**: Best speedup (3.6-3.9×) but worst quality (+3.5-13.9% worse) - use only when speed is critical
-- **k=10**: Strong speedup (2.5-2.6×) with acceptable quality loss (+5.0% TSPA, ±0% TSPB) - **recommended balance**
-- **k=15**: Good speedup (1.9-2.0×) with small quality loss (+0.4-2.1%) - conservative option
-- **k=20**: Moderate speedup (1.5-1.6×) with minimal quality loss (+0.2-0.8%) - quality-focused option
-
-**Recommendation**: 
-- **For speed-critical applications**: Use **k=10** (2.5× faster, acceptable quality loss)
-- **For quality-critical applications**: Use **k=20** (1.6× faster, minimal quality loss) or standard steepest
-- **TSPB-specific**: k=10 is ideal (2.5× faster with no quality loss)
-
-### Key Insights
-
-1. **Candidate moves succeed at n=200**: Achieved 1.5-3.9× speedup by reducing neighborhood from O(n²) to O(nk)
-2. **Clear speed-quality tradeoff**: Smaller k = faster but lower quality; larger k = slower but better quality
-3. **Instance-dependent behavior**: TSPB preserves quality better than TSPA (k=10 matches baseline for TSPB)
-4. **k=10 is the sweet spot**: Provides 2.5× speedup with minimal quality loss (<5% for TSPA, ±0% for TSPB)
-5. **Scalability potential**: Since speedup comes from O(nk) vs O(n²), benefits would increase dramatically for larger instances (n > 200)
-6. **Theory matches practice**: Asymptotic complexity reduction (O(nk) vs O(n²)) translated to measurable wall-clock speedup
-7. **Best approach for n=200**: 
-   - Use **candidate moves with k=10** for 2.5× speedup with acceptable quality
-   - Use **standard steepest** only if quality is paramount and time is not a constraint
+**Recommendation**: k=10 provides a good balance (2.5× faster, ~5% quality loss for TSPA, no loss for TSPB).
