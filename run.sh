@@ -12,4 +12,6 @@ g++ -std=c++17 -O2 -I. \
     assignment2/nearestNeighborAnyRegret2Weighted.cpp \
     assignment3/localSearch.cpp \
     assignment4/candidateMoves.cpp \
+    assignment5/localSearchLM.cpp \
+    assignment5/localSearchLMCandidates.cpp \
     -o main && ./main | tee output.txt

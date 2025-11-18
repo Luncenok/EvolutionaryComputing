@@ -57,5 +57,5 @@ void printAlgorithmResult(const std::string& name, const AlgorithmResult& result
     std::cout << "  Time (ms): Min=" << result.minTime << ", Max=" << result.maxTime << ", Avg=" << result.avgTime << "\n";
     std::cout << "  Best: ";
     for (int node : result.bestSolution) std::cout << node << " ";
-    std::cout << "\n\n";
+    std::cout << "\n\n" << std::flush;
 }

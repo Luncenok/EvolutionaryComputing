@@ -38,4 +38,21 @@ std::vector<int> localSearchGreedyEdges(
     std::mt19937& rng
 );
 
+// Local search with steepest descent using list of improving moves (edges exchange)
+std::vector<int> localSearchSteepestEdgesLM(
+    const std::vector<int>& initialSolution,
+    const std::vector<std::vector<int>>& distance,
+    const std::vector<int>& costs,
+    int n
+);
+
+// Local search with steepest descent using list of improving moves and candidate moves (edges exchange)
+std::vector<int> localSearchSteepestEdgesLMCandidates(
+    const std::vector<int>& initialSolution,
+    const std::vector<std::vector<int>>& distance,
+    const std::vector<int>& costs,
+    int n,
+    int k
+);
+
 #endif

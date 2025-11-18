@@ -58,10 +58,16 @@ void process(const std::string& filename) {
     std::cout << "Nodes: " << n << ", Selecting: " << selectCount << "\n\n";
     
     std::mt19937 rng(DEFAULT_SEED);
-    
+
+    // Pre-generate random initial solutions shared by all random-start methods
+    std::vector<std::vector<int>> randomInitials(n);
+    for (int start = 0; start < n; ++start) {
+        randomInitials[start] = randomSolution(start, n, selectCount, rng);
+    }
+
     // Random solutions
     auto resultRandom = evaluateAlgorithm("Random", n, selectCount, distance, costs,
-        [&](int start) { return randomSolution(start, n, selectCount, rng); });
+        [&](int start) { return randomInitials[start]; });
     printAlgorithmResult("Random", resultRandom);
     
     // Nearest neighbor (end only)
@@ -120,7 +126,7 @@ void process(const std::string& filename) {
     // Local Search: Random start + Steepest + Nodes
     auto resultLSRandomSteepestNodes = evaluateAlgorithm("LS Random + Steepest + Nodes", n, selectCount, distance, costs,
         [&](int start) { 
-            auto initial = randomSolution(start, n, selectCount, rng);
+            auto initial = randomInitials[start];
             return localSearchSteepestNodes(initial, distance, costs, n);
         });
     printAlgorithmResult("LS Random + Steepest + Nodes", resultLSRandomSteepestNodes);
@@ -128,7 +134,7 @@ void process(const std::string& filename) {
     // Local Search: Random start + Greedy + Nodes
     auto resultLSRandomGreedyNodes = evaluateAlgorithm("LS Random + Greedy + Nodes", n, selectCount, distance, costs,
         [&](int start) { 
-            auto initial = randomSolution(start, n, selectCount, rng);
+            auto initial = randomInitials[start];
             return localSearchGreedyNodes(initial, distance, costs, n, rng);
         });
     printAlgorithmResult("LS Random + Greedy + Nodes", resultLSRandomGreedyNodes);
@@ -136,7 +142,7 @@ void process(const std::string& filename) {
     // Local Search: Random start + Greedy + Edges
     auto resultLSRandomGreedyEdges = evaluateAlgorithm("LS Random + Greedy + Edges", n, selectCount, distance, costs,
         [&](int start) { 
-            auto initial = randomSolution(start, n, selectCount, rng);
+            auto initial = randomInitials[start];
             return localSearchGreedyEdges(initial, distance, costs, n, rng);
         });
     printAlgorithmResult("LS Random + Greedy + Edges", resultLSRandomGreedyEdges);
@@ -176,45 +182,69 @@ void process(const std::string& filename) {
     // Local Search: Random start + Steepest + Edges
     auto resultLSRandomSteepestEdges = evaluateAlgorithm("LS Random + Steepest + Edges", n, selectCount, distance, costs,
         [&](int start) { 
-            auto initial = randomSolution(start, n, selectCount, rng);
+            auto initial = randomInitials[start];
             return localSearchSteepestEdges(initial, distance, costs, n);
         });
     printAlgorithmResult("LS Random + Steepest + Edges", resultLSRandomSteepestEdges);
+    
+    // Local Search: Random start + Steepest + Edges with LM (list of improving moves)
+    auto resultLSRandomSteepestEdgesLM = evaluateAlgorithm("LM Random + Steepest + Edges", n, selectCount, distance, costs,
+        [&](int start) {
+            auto initial = randomInitials[start];
+            return localSearchSteepestEdgesLM(initial, distance, costs, n);
+        });
+    printAlgorithmResult("LM Random + Steepest + Edges", resultLSRandomSteepestEdgesLM);
         
     // Candidate Moves with different k values
     auto resultCandidatesK5 = evaluateAlgorithm("Candidates + Random + Steepest + Edges (k=5)", n, selectCount, distance, costs,
         [&](int start) { 
-            auto initial = randomSolution(start, n, selectCount, rng);
+            auto initial = randomInitials[start];
             return localSearchSteepestEdgesCandidates(initial, distance, costs, n, 5);
         });
     printAlgorithmResult("Candidates + Random + Steepest + Edges (k=5)", resultCandidatesK5);
     
     auto resultCandidatesK10 = evaluateAlgorithm("Candidates + Random + Steepest + Edges (k=10)", n, selectCount, distance, costs,
         [&](int start) { 
-            auto initial = randomSolution(start, n, selectCount, rng);
+            auto initial = randomInitials[start];
             return localSearchSteepestEdgesCandidates(initial, distance, costs, n, 10);
         });
     printAlgorithmResult("Candidates + Random + Steepest + Edges (k=10)", resultCandidatesK10);
     
     auto resultCandidatesK15 = evaluateAlgorithm("Candidates + Random + Steepest + Edges (k=15)", n, selectCount, distance, costs,
         [&](int start) { 
-            auto initial = randomSolution(start, n, selectCount, rng);
+            auto initial = randomInitials[start];
             return localSearchSteepestEdgesCandidates(initial, distance, costs, n, 15);
         });
     printAlgorithmResult("Candidates + Random + Steepest + Edges (k=15)", resultCandidatesK15);
     
     auto resultCandidatesK20 = evaluateAlgorithm("Candidates + Random + Steepest + Edges (k=20)", n, selectCount, distance, costs,
         [&](int start) { 
-            auto initial = randomSolution(start, n, selectCount, rng);
+            auto initial = randomInitials[start];
             return localSearchSteepestEdgesCandidates(initial, distance, costs, n, 20);
         });
     printAlgorithmResult("Candidates + Random + Steepest + Edges (k=20)", resultCandidatesK20);
+
+    // LM + Candidate Moves (k=10)
+    auto resultLMCandidatesK10 = evaluateAlgorithm("LM Candidates + Random + Steepest + Edges (k=10)", n, selectCount, distance, costs,
+        [&](int start) {
+            auto initial = randomInitials[start];
+            return localSearchSteepestEdgesLMCandidates(initial, distance, costs, n, 10);
+        });
+    printAlgorithmResult("LM Candidates + Random + Steepest + Edges (k=10)", resultLMCandidatesK10);
+
+    // LM + Candidate Moves (k=20)
+    auto resultLMCandidatesK20 = evaluateAlgorithm("LM Candidates + Random + Steepest + Edges (k=20)", n, selectCount, distance, costs,
+        [&](int start) {
+            auto initial = randomInitials[start];
+            return localSearchSteepestEdgesLMCandidates(initial, distance, costs, n, 100);
+        });
+    printAlgorithmResult("LM Candidates + Random + Steepest + Edges (k=20)", resultLMCandidatesK20);
 }
 
 int main() {
-    std::ios_base::sync_with_stdio(false);
-    std::cin.tie(0);
-    std::cout.tie(0);
+    // std::ios_base::sync_with_stdio(false);
+    // std::cin.tie(0);
+    // std::cout.tie(0);
     
     process("input/TSPA.csv");
     process("input/TSPB.csv");
