@@ -223,6 +223,46 @@ To provide context, here are the objective values for all methods tested through
 - MSLS also ranks among the top methods, competitive with best construction heuristics
 - Both iterative methods significantly outperform simple local search variants
 
+### Running Times Comparison
+
+**TSPA Instance - Running Times (ms):**
+
+| Method | Min | Max | Avg |
+|--------|-----|-----|-----|
+| Random | 0.0046 | 0.0128 | 0.0055 |
+| Nearest Neighbor (end only) | 0.0167 | 0.1550 | 0.0243 |
+| Nearest Neighbor (any position) | 0.8181 | 2.1996 | 0.9611 |
+| Greedy Cycle | 0.8004 | 3.9058 | 0.9999 |
+| Greedy 2-Regret | 1.1254 | 2.3961 | 1.2444 |
+| Greedy Weighted | 1.1234 | 3.6067 | 1.3750 |
+| Nearest Neighbor Any 2-Regret | 1.0278 | 2.0443 | 1.1493 |
+| Nearest Neighbor Any Weighted | 1.0408 | 7.5557 | 1.2644 |
+| LS Random + Steepest + Nodes | 5.605 | 9.845 | 7.371 |
+| **MSLS (200 iterations)** | **3223.82** | **3482.74** | **3304.00** |
+| **ILS (time limit)** | **3304.07** | **3305.80** | **3304.60** |
+
+**TSPB Instance - Running Times (ms):**
+
+| Method | Min | Max | Avg |
+|--------|-----|-----|-----|
+| Random | 0.0048 | 0.0092 | 0.0056 |
+| Nearest Neighbor (end only) | 0.0189 | 0.0727 | 0.0240 |
+| Nearest Neighbor (any position) | 0.8455 | 1.3422 | 0.9092 |
+| Greedy Cycle | 0.8053 | 1.3212 | 0.8573 |
+| Greedy 2-Regret | 1.1308 | 1.4248 | 1.1903 |
+| Greedy Weighted | 1.1293 | 1.5618 | 1.1789 |
+| Nearest Neighbor Any 2-Regret | 1.0343 | 1.5842 | 1.0937 |
+| Nearest Neighbor Any Weighted | 1.0468 | 1.4215 | 1.1075 |
+| LS Random + Steepest + Nodes | 5.552 | 9.856 | 7.254 |
+| **MSLS (200 iterations)** | **3210.38** | **3381.45** | **3246.32** |
+| **ILS (time limit)** | **3246.40** | **3247.58** | **3246.79** |
+
+**Key findings:**
+- MSLS and ILS are significantly slower than construction heuristics and single-run local search
+- Both iterative methods take ~3 seconds per run (200 iterations for MSLS, ~3500 LS runs for ILS)
+- The time investment is justified by the superior solution quality
+- ILS achieves the same time budget as MSLS while performing 17× more local search runs
+
 ## Visualizations
 
 Best solutions found by MSLS and ILS visualized on both instances:
