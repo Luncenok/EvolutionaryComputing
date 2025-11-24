@@ -6,6 +6,7 @@
 #include <cmath>
 #include <random>
 #include <climits>
+#include <cfloat>
 #include <algorithm>
 #include "include/constants.h"
 #include "include/calculateObjective.h"
@@ -20,6 +21,8 @@
 #include "include/algorithmEvaluator.h"
 #include "include/localSearch.h"
 #include "include/candidateMoves.h"
+#include "include/multipleStartLS.h"
+#include "include/iteratedLS.h"
 
 void process(const std::string& filename) {
     std::vector<std::tuple<int, int, int>> table;
@@ -239,6 +242,39 @@ void process(const std::string& filename) {
             return localSearchSteepestEdgesLMCandidates(initial, distance, costs, n, 100);
         });
     printAlgorithmResult("LM Candidates + Random + Steepest + Edges (k=20)", resultLMCandidatesK20);
+    
+    // Multiple Start Local Search - run 20 times
+    // We use a custom evaluator for this specifically because it has to run exactly 20 times.
+    int mslsIterations = 200;
+    AlgorithmResult mslsResult = evaluateIterativeAlgorithm<MSLSResult>(
+        "MSLS",
+        20,
+        [&]() { return multipleStartLS(n, selectCount, distance, costs, randomInitials, mslsIterations, rng); }
+    );
+    printAlgorithmResult("Multiple Start Local Search (200 iterations)", mslsResult);
+    
+    // Iterated Local Search - run 20 times with time limit = average MSLS time
+    double ilsTimeLimit = mslsResult.avgTime;
+    std::vector<ILSResult> ilsResults;
+    AlgorithmResult ilsResult = evaluateIterativeAlgorithm<ILSResult>(
+        "ILS",
+        20,
+        [&]() { 
+            auto res = iteratedLS(n, selectCount, distance, costs, randomInitials, ilsTimeLimit, rng); 
+            ilsResults.push_back(res);
+            return res;
+        }
+    );
+    
+    // Calculate average LS runs
+    long long sumLSRuns = 0;
+    for (const auto& res : ilsResults) {
+        sumLSRuns += res.lsRuns;
+    }
+    double avgLSRuns = sumLSRuns / 20.0;
+    
+    printAlgorithmResult("Iterated Local Search (time limit = " + std::to_string((int)ilsTimeLimit) + " ms)", ilsResult);
+    std::cout << "  LS Runs: Avg=" << avgLSRuns << "\n\n" << std::flush;
 }
 
 int main() {

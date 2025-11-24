@@ -2,6 +2,7 @@
 #include "include/calculateObjective.h"
 #include <iostream>
 #include <climits>
+#include <cfloat>
 #include <chrono>
 
 AlgorithmResult evaluateAlgorithm(
@@ -15,7 +16,7 @@ AlgorithmResult evaluateAlgorithm(
     AlgorithmResult result;
     result.minObj = INT_MAX;
     result.maxObj = 0;
-    result.minTime = 1e9;
+    result.minTime = DBL_MAX;
     result.maxTime = 0;
     long long sumObj = 0;
     double sumTime = 0;
