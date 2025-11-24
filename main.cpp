@@ -249,7 +249,12 @@ void process(const std::string& filename) {
     AlgorithmResult mslsResult = evaluateIterativeAlgorithm<MSLSResult>(
         "MSLS",
         20,
-        [&]() { return multipleStartLS(n, selectCount, distance, costs, randomInitials, mslsIterations, rng); }
+        [&]() { 
+            std::vector<std::vector<int>> randomInitials(n);
+            for (int start = 0; start < n; ++start) {
+                randomInitials[start] = randomSolution(start, n, selectCount, rng);
+            }
+            return multipleStartLS(n, selectCount, distance, costs, randomInitials, mslsIterations, rng); }
     );
     printAlgorithmResult("Multiple Start Local Search (200 iterations)", mslsResult);
     
@@ -260,6 +265,10 @@ void process(const std::string& filename) {
         "ILS",
         20,
         [&]() { 
+            std::vector<std::vector<int>> randomInitials(n);
+            for (int start = 0; start < n; ++start) {
+                randomInitials[start] = randomSolution(start, n, selectCount, rng);
+            }
             auto res = iteratedLS(n, selectCount, distance, costs, randomInitials, ilsTimeLimit, rng); 
             ilsResults.push_back(res);
             return res;
