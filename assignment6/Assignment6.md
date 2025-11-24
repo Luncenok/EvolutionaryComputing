@@ -183,9 +183,9 @@ perturb(solution):
 
 ### Comparison with All Previous Methods
 
-To provide context, here are the objective values for all methods tested throughout the course:
+Complete results for all methods tested throughout the course:
 
-**TSPA Instance (200 nodes, 100 selected):**
+**TSPA Instance - Objective Function Values:**
 
 | Method | Min | Max | Avg |
 |--------|-----|-----|-----|
@@ -194,14 +194,28 @@ To provide context, here are the objective values for all methods tested through
 | Nearest Neighbor (any position) | 71179 | 75450 | 73178 |
 | Greedy Cycle | 71488 | 74410 | 72646 |
 | Greedy 2-Regret | 105852 | 123428 | 115474 |
-| Greedy Weighted | 71108 | 73395 | 72129 |
+| Greedy Weighted (2-Regret + BestDelta) | 71108 | 73395 | 72129 |
 | Nearest Neighbor Any 2-Regret | 106373 | 126570 | 116659 |
-| Nearest Neighbor Any Weighted | 70010 | 75452 | 72401 |
+| Nearest Neighbor Any Weighted (2-Regret + BestDelta) | 70010 | 75452 | 72401 |
 | LS Random + Steepest + Nodes | 80903 | 97156 | 88323 |
+| LS Random + Greedy + Nodes | 86293 | 102205 | 92779 |
+| LS Random + Greedy + Edges | 75576 | 86423 | 81269 |
+| LS Greedy + Steepest + Nodes | 70626 | 72950 | 71614 |
+| LS Greedy + Steepest + Edges | 70510 | 72614 | 71460 |
+| LS Greedy + Greedy + Nodes | 71093 | 73048 | 71913 |
+| LS Greedy + Greedy + Edges | 70977 | 72844 | 71817 |
+| LS Random + Steepest + Edges | 70937 | 78033 | 73945 |
+| LM Random + Steepest + Edges | 71993 | 80945 | 74973 |
+| Candidates + Random + Steepest + Edges (k=5) | 78119 | 91398 | 84660 |
+| Candidates + Random + Steepest + Edges (k=10) | 73550 | 83200 | 77494 |
+| Candidates + Random + Steepest + Edges (k=15) | 71917 | 80679 | 75268 |
+| Candidates + Random + Steepest + Edges (k=20) | 71417 | 79637 | 74451 |
+| LM Candidates + Random + Steepest + Edges (k=10) | 72274 | 79625 | 74829 |
+| LM Candidates + Random + Steepest + Edges (k=20) | 71993 | 80945 | 74962 |
 | **MSLS (200 iterations)** | **70937** | **70937** | **70937** |
-| **ILS (time limit)** | **69141** | **69476** | **69305** |
+| **ILS (time limit = 3304 ms)** | **69141** | **69476** | **69305** |
 
-**TSPB Instance (200 nodes, 100 selected):**
+**TSPB Instance - Objective Function Values:**
 
 | Method | Min | Max | Avg |
 |--------|-----|-----|-----|
@@ -210,12 +224,26 @@ To provide context, here are the objective values for all methods tested through
 | Nearest Neighbor (any position) | 44417 | 53438 | 45870 |
 | Greedy Cycle | 49001 | 57324 | 51400 |
 | Greedy 2-Regret | 66505 | 77072 | 72454 |
-| Greedy Weighted | 47144 | 55700 | 50950 |
+| Greedy Weighted (2-Regret + BestDelta) | 47144 | 55700 | 50950 |
 | Nearest Neighbor Any 2-Regret | 67121 | 79013 | 73646 |
-| Nearest Neighbor Any Weighted | 44891 | 55247 | 47653 |
+| Nearest Neighbor Any Weighted (2-Regret + BestDelta) | 44891 | 55247 | 47653 |
 | LS Random + Steepest + Nodes | 56207 | 70573 | 63219 |
+| LS Random + Greedy + Nodes | 58261 | 72047 | 65529 |
+| LS Random + Greedy + Edges | 50177 | 59362 | 54184 |
+| LS Greedy + Steepest + Nodes | 43826 | 50876 | 45414 |
+| LS Greedy + Steepest + Edges | 43921 | 50629 | 44979 |
+| LS Greedy + Greedy + Nodes | 43917 | 51144 | 45561 |
+| LS Greedy + Greedy + Edges | 43845 | 51072 | 45371 |
+| LS Random + Steepest + Edges | 45799 | 51543 | 48313 |
+| LM Random + Steepest + Edges | 46324 | 53526 | 49391 |
+| Candidates + Random + Steepest + Edges (k=5) | 46328 | 53421 | 49996 |
+| Candidates + Random + Steepest + Edges (k=10) | 45358 | 53439 | 48461 |
+| Candidates + Random + Steepest + Edges (k=15) | 45251 | 51868 | 48201 |
+| Candidates + Random + Steepest + Edges (k=20) | 45356 | 51272 | 48294 |
+| LM Candidates + Random + Steepest + Edges (k=10) | 46111 | 53213 | 49201 |
+| LM Candidates + Random + Steepest + Edges (k=20) | 46324 | 53526 | 49391 |
 | **MSLS (200 iterations)** | **45799** | **45799** | **45799** |
-| **ILS (time limit)** | **43456** | **44291** | **43613** |
+| **ILS (time limit = 3246 ms)** | **43456** | **44291** | **43613** |
 
 **Key findings:**
 - **ILS achieves the best average objective** on both instances among all methods tested
@@ -223,45 +251,72 @@ To provide context, here are the objective values for all methods tested through
 - MSLS also ranks among the top methods, competitive with best construction heuristics
 - Both iterative methods significantly outperform simple local search variants
 
-### Running Times Comparison
-
 **TSPA Instance - Running Times (ms):**
 
 | Method | Min | Max | Avg |
 |--------|-----|-----|-----|
-| Random | 0.0046 | 0.0128 | 0.0055 |
-| Nearest Neighbor (end only) | 0.0167 | 0.1550 | 0.0243 |
-| Nearest Neighbor (any position) | 0.8181 | 2.1996 | 0.9611 |
-| Greedy Cycle | 0.8004 | 3.9058 | 0.9999 |
-| Greedy 2-Regret | 1.1254 | 2.3961 | 1.2444 |
-| Greedy Weighted | 1.1234 | 3.6067 | 1.3750 |
-| Nearest Neighbor Any 2-Regret | 1.0278 | 2.0443 | 1.1493 |
-| Nearest Neighbor Any Weighted | 1.0408 | 7.5557 | 1.2644 |
-| LS Random + Steepest + Nodes | 5.605 | 9.845 | 7.371 |
+| Random | 0.0000 | 0.0005 | 0.0001 |
+| Nearest Neighbor (end only) | 0.0342 | 0.0443 | 0.0386 |
+| Nearest Neighbor (any position) | 1.4475 | 1.6102 | 1.4733 |
+| Greedy Cycle | 2.6042 | 2.7999 | 2.6237 |
+| Greedy 2-Regret | 2.5985 | 2.6897 | 2.6457 |
+| Greedy Weighted (2-Regret + BestDelta) | 2.5949 | 2.6785 | 2.6246 |
+| Nearest Neighbor Any 2-Regret | 1.4477 | 2.0777 | 1.5523 |
+| Nearest Neighbor Any Weighted (2-Regret + BestDelta) | 1.4811 | 1.6774 | 1.5962 |
+| LS Random + Steepest + Nodes | 19.4226 | 31.8627 | 24.3442 |
+| LS Random + Greedy + Nodes | 1.9020 | 6.7854 | 3.5262 |
+| LS Random + Greedy + Edges | 1.5978 | 4.0140 | 2.5544 |
+| LS Greedy + Steepest + Nodes | 2.9704 | 6.4356 | 3.7700 |
+| LS Greedy + Steepest + Edges | 3.0123 | 4.6928 | 3.5529 |
+| LS Greedy + Greedy + Nodes | 3.3892 | 5.0970 | 3.8432 |
+| LS Greedy + Greedy + Edges | 3.4178 | 4.9547 | 3.8581 |
+| LS Random + Steepest + Edges | 14.4044 | 18.3997 | 16.2536 |
+| LM Random + Steepest + Edges | 4.2332 | 8.1270 | 5.5978 |
+| Candidates + Random + Steepest + Edges (k=5) | 3.7847 | 8.4170 | 4.4769 |
+| Candidates + Random + Steepest + Edges (k=10) | 5.3354 | 6.7890 | 6.0042 |
+| Candidates + Random + Steepest + Edges (k=15) | 7.2444 | 9.2760 | 8.0441 |
+| Candidates + Random + Steepest + Edges (k=20) | 8.9079 | 11.0741 | 9.9455 |
+| LM Candidates + Random + Steepest + Edges (k=10) | 6.4400 | 8.3791 | 7.4459 |
+| LM Candidates + Random + Steepest + Edges (k=20) | 18.9319 | 45.9974 | 22.4139 |
 | **MSLS (200 iterations)** | **3223.82** | **3482.74** | **3304.00** |
-| **ILS (time limit)** | **3304.07** | **3305.80** | **3304.60** |
+| **ILS (time limit = 3304 ms)** | **3304.07** | **3305.80** | **3304.60** |
 
 **TSPB Instance - Running Times (ms):**
 
 | Method | Min | Max | Avg |
 |--------|-----|-----|-----|
-| Random | 0.0048 | 0.0092 | 0.0056 |
-| Nearest Neighbor (end only) | 0.0189 | 0.0727 | 0.0240 |
-| Nearest Neighbor (any position) | 0.8455 | 1.3422 | 0.9092 |
-| Greedy Cycle | 0.8053 | 1.3212 | 0.8573 |
-| Greedy 2-Regret | 1.1308 | 1.4248 | 1.1903 |
-| Greedy Weighted | 1.1293 | 1.5618 | 1.1789 |
-| Nearest Neighbor Any 2-Regret | 1.0343 | 1.5842 | 1.0937 |
-| Nearest Neighbor Any Weighted | 1.0468 | 1.4215 | 1.1075 |
-| LS Random + Steepest + Nodes | 5.552 | 9.856 | 7.254 |
+| Random | 0.0001 | 0.0008 | 0.0002 |
+| Nearest Neighbor (end only) | 0.0352 | 0.1092 | 0.0461 |
+| Nearest Neighbor (any position) | 1.4255 | 1.9735 | 1.4528 |
+| Greedy Cycle | 2.5764 | 2.6887 | 2.6151 |
+| Greedy 2-Regret | 2.5756 | 2.6728 | 2.6142 |
+| Greedy Weighted (2-Regret + BestDelta) | 2.5693 | 2.7255 | 2.6273 |
+| Nearest Neighbor Any 2-Regret | 1.4329 | 1.6191 | 1.5120 |
+| Nearest Neighbor Any Weighted (2-Regret + BestDelta) | 1.4356 | 1.7028 | 1.5451 |
+| LS Random + Steepest + Nodes | 19.4604 | 29.4551 | 23.6717 |
+| LS Random + Greedy + Nodes | 2.1007 | 6.3568 | 3.6191 |
+| LS Random + Greedy + Edges | 1.7279 | 3.0625 | 2.2735 |
+| LS Greedy + Steepest + Nodes | 2.0857 | 5.8527 | 2.8188 |
+| LS Greedy + Steepest + Edges | 2.0847 | 3.3959 | 2.5084 |
+| LS Greedy + Greedy + Nodes | 2.1775 | 9.3875 | 2.8530 |
+| LS Greedy + Greedy + Edges | 2.1311 | 3.6577 | 2.5706 |
+| LS Random + Steepest + Edges | 14.1165 | 24.6737 | 16.5348 |
+| LM Random + Steepest + Edges | 4.3736 | 7.0060 | 5.3759 |
+| Candidates + Random + Steepest + Edges (k=5) | 4.1515 | 9.7641 | 4.6718 |
+| Candidates + Random + Steepest + Edges (k=10) | 5.6526 | 9.0061 | 6.7328 |
+| Candidates + Random + Steepest + Edges (k=15) | 7.8062 | 22.5641 | 9.0754 |
+| Candidates + Random + Steepest + Edges (k=20) | 9.4218 | 12.0265 | 10.5970 |
+| LM Candidates + Random + Steepest + Edges (k=10) | 5.9539 | 8.3988 | 7.2321 |
+| LM Candidates + Random + Steepest + Edges (k=20) | 19.2631 | 26.3872 | 22.4984 |
 | **MSLS (200 iterations)** | **3210.38** | **3381.45** | **3246.32** |
-| **ILS (time limit)** | **3246.40** | **3247.58** | **3246.79** |
+| **ILS (time limit = 3246 ms)** | **3246.40** | **3247.58** | **3246.79** |
 
 **Key findings:**
 - MSLS and ILS are significantly slower than construction heuristics and single-run local search
-- Both iterative methods take ~3 seconds per run (200 iterations for MSLS, ~3500 LS runs for ILS)
-- The time investment is justified by the superior solution quality
-- ILS achieves the same time budget as MSLS while performing 17× more local search runs
+- Both iterative methods take ~3.2-3.3 seconds per run
+- **MSLS timing verification**: 200 iterations × 16.25 ms = 3250 ms (expected) vs 3304 ms (actual) = only **1.7% overhead**
+- **ILS efficiency**: Performs ~3500 local search runs in the same time as MSLS's 200 runs (~17× more)
+- The time investment is justified by the superior solution quality achieved
 
 ## Visualizations
 
