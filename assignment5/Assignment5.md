@@ -78,18 +78,6 @@ delta   = newCost - oldCost
 
 We maintain a **list of improving moves** (LM) that stores all currently known moves with `delta < 0`.
 
-Each move is represented as:
-
-```text
-struct LMMove {
-    type   # 0 = 2-opt, 1 = node exchange
-    a1,b1  # edge 1 endpoints
-    a2,b2  # edge 2 endpoints (for 2-opt) or second edge around old node
-    newNode # for node exchange (unselected node), otherwise -1
-    delta  # cached delta (newCost - oldCost)
-}
-```
-
 LM is stored as a vector sorted by `delta` (most negative first). Ties are broken by `type` and then by node index.
 
 We also maintain:
@@ -169,9 +157,6 @@ generateMovesForNodes(nodesToScan, sol, inSolution, distance, costs, useSymmetry
             x = sol[j]
             y = sol[(j+1) mod |sol|]
 
-            # Optional symmetry pruning (only in full init):
-            if useSymmetryCheck and u > x: continue
-
             # Variant A: edges u→v and x→y
             deltaA = Δ2opt(u,v,x,y)
             if deltaA < 0:
@@ -210,8 +195,7 @@ localSearchSteepestEdgesLM(initial, distance, costs, n):
 
     # --- PHASE 1: Initialization (full neighborhood) ---
     nodesToScan = [0, 1, ..., |sol|-1]
-    generateMovesForNodes(nodesToScan, sol, inSolution, distance, costs,
-                          useSymmetryCheck = true)   # use symmetry pruning here
+    generateMovesForNodes(nodesToScan, sol, inSolution, distance, costs)  
     sort LM by delta (best first)
 
     improved = true
@@ -260,8 +244,7 @@ localSearchSteepestEdgesLM(initial, distance, costs, n):
         touched = indices around affected edges or exchanged node
 
         # 5. Generate new moves only for touched positions
-        newMoves = generateMovesForNodes(touched, sol, inSolution, distance, costs,
-                                         useSymmetryCheck = false)  # no symmetry pruning
+        newMoves = generateMovesForNodes(touched, sol, inSolution, distance, costs)  
         sort newMoves by delta
 
         # 6. Clean LM again and merge
