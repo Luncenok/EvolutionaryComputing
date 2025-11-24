@@ -145,7 +145,7 @@ This is applied during:
 We reuse the same helper in two contexts: full initialization and local updates around affected positions.
 
 ```text
-generateMovesForNodes(nodesToScan, sol, inSolution, distance, costs, useSymmetryCheck):
+generateMovesForNodes(nodesToScan, sol, inSolution, distance, costs):
     for each index i in nodesToScan:
         u = sol[i]
         v = sol[(i+1) mod |sol|]   # edge u–v
