@@ -23,6 +23,7 @@
 #include "include/candidateMoves.h"
 #include "include/multipleStartLS.h"
 #include "include/iteratedLS.h"
+#include "include/largeNeighborhoodSearch.h"
 
 void process(const std::string& filename) {
     std::vector<std::tuple<int, int, int>> table;
@@ -284,6 +285,59 @@ void process(const std::string& filename) {
     
     printAlgorithmResult("Iterated Local Search (time limit = " + std::to_string((int)ilsTimeLimit) + " ms)", ilsResult);
     std::cout << "  LS Runs: Avg=" << avgLSRuns << "\n\n" << std::flush;
+    
+    // Large Neighborhood Search with Local Search - run 20 times with time limit = average MSLS time
+    double lnsTimeLimit = mslsResult.avgTime;
+    std::vector<LNSResult> lnsWithLSResults;
+    AlgorithmResult lnsWithLSResult = evaluateIterativeAlgorithm<LNSResult>(
+        "LNS with LS",
+        20,
+        [&]() { 
+            std::vector<std::vector<int>> randomInitials(n);
+            for (int start = 0; start < n; ++start) {
+                randomInitials[start] = randomSolution(start, n, selectCount, rng);
+            }
+            auto res = largeNeighborhoodSearchWithLS(n, selectCount, distance, costs, randomInitials, lnsTimeLimit, rng);
+            lnsWithLSResults.push_back(res);
+            return res;
+        }
+    );
+    
+    // Calculate average iterations for LNS with LS
+    long long sumLNSWithLSIter = 0;
+    for (const auto& res : lnsWithLSResults) {
+        sumLNSWithLSIter += res.iterations;
+    }
+    double avgLNSWithLSIter = sumLNSWithLSIter / 20.0;
+    
+    printAlgorithmResult("LNS with LS (time limit = " + std::to_string((int)lnsTimeLimit) + " ms)", lnsWithLSResult);
+    std::cout << "  Iterations: Avg=" << avgLNSWithLSIter << "\n\n" << std::flush;
+    
+    // Large Neighborhood Search without Local Search - run 20 times with time limit = average MSLS time
+    std::vector<LNSResult> lnsNoLSResults;
+    AlgorithmResult lnsNoLSResult = evaluateIterativeAlgorithm<LNSResult>(
+        "LNS without LS",
+        20,
+        [&]() { 
+            std::vector<std::vector<int>> randomInitials(n);
+            for (int start = 0; start < n; ++start) {
+                randomInitials[start] = randomSolution(start, n, selectCount, rng);
+            }
+            auto res = largeNeighborhoodSearchNoLS(n, selectCount, distance, costs, randomInitials, lnsTimeLimit, rng);
+            lnsNoLSResults.push_back(res);
+            return res;
+        }
+    );
+    
+    // Calculate average iterations for LNS without LS
+    long long sumLNSNoLSIter = 0;
+    for (const auto& res : lnsNoLSResults) {
+        sumLNSNoLSIter += res.iterations;
+    }
+    double avgLNSNoLSIter = sumLNSNoLSIter / 20.0;
+    
+    printAlgorithmResult("LNS without LS (time limit = " + std::to_string((int)lnsTimeLimit) + " ms)", lnsNoLSResult);
+    std::cout << "  Iterations: Avg=" << avgLNSNoLSIter << "\n\n" << std::flush;
 }
 
 int main() {
