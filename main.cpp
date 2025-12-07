@@ -8,6 +8,9 @@
 #include <climits>
 #include <cfloat>
 #include <algorithm>
+#include <chrono>
+#include <ctime>
+#include <iomanip>
 #include "include/constants.h"
 #include "include/calculateObjective.h"
 #include "include/randomSolution.h"
@@ -24,8 +27,9 @@
 #include "include/multipleStartLS.h"
 #include "include/iteratedLS.h"
 #include "include/largeNeighborhoodSearch.h"
+#include "include/globalConvexity.h"
 
-void process(const std::string& filename) {
+std::vector<int> process(const std::string& filename, bool returnBestSolution = false) {
     std::vector<std::tuple<int, int, int>> table;
     
     // Read file
@@ -62,6 +66,9 @@ void process(const std::string& filename) {
     std::cout << "Nodes: " << n << ", Selecting: " << selectCount << "\n\n";
     
     std::mt19937 rng(DEFAULT_SEED);
+    
+    // Store best ILS solution for return
+    std::vector<int> bestILSSolution;
 
     // Pre-generate random initial solutions shared by all random-start methods
     std::vector<std::vector<int>> randomInitials(n);
@@ -276,6 +283,9 @@ void process(const std::string& filename) {
         }
     );
     
+    // Store best ILS solution for assignment 8
+    bestILSSolution = ilsResult.bestSolution;
+    
     // Calculate average LS runs
     long long sumLSRuns = 0;
     for (const auto& res : ilsResults) {
@@ -338,6 +348,8 @@ void process(const std::string& filename) {
     
     printAlgorithmResult("LNS without LS (time limit = " + std::to_string((int)lnsTimeLimit) + " ms)", lnsNoLSResult);
     std::cout << "  Iterations: Avg=" << avgLNSNoLSIter << "\n\n" << std::flush;
+    
+    return bestILSSolution;
 }
 
 int main() {
@@ -345,8 +357,171 @@ int main() {
     // std::cin.tie(0);
     // std::cout.tie(0);
     
-    process("input/TSPA.csv");
-    process("input/TSPB.csv");
+    // Record start time
+    auto startTime = std::chrono::high_resolution_clock::now();
+    auto startTimeT = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    std::cout << "Execution started at: " << std::put_time(std::localtime(&startTimeT), "%Y-%m-%d %H:%M:%S") << "\n\n" << std::flush;
+    
+    std::vector<int> bestSolutionA = process("input/TSPA.csv", true);
+    std::vector<int> bestSolutionB = process("input/TSPB.csv", true);
+    
+    // Assignment 8: Global Convexity Tests
+    std::cout << "\n" << std::flush;
+    
+    // We need to re-read the instances to run global convexity analysis
+    std::mt19937 rngGC(DEFAULT_SEED);
+    
+    // TSPA
+    {
+        std::vector<std::tuple<int, int, int>> table;
+        std::ifstream fin("input/TSPA.csv");
+        std::string line;
+        while (std::getline(fin, line)) {
+            if (line.empty()) continue;
+            std::replace(line.begin(), line.end(), ';', ' ');
+            std::istringstream iss(line);
+            int x, y, cost;
+            if (iss >> x >> y >> cost) {
+                table.push_back(std::make_tuple(x, y, cost));
+            }
+        }
+        fin.close();
+        
+        int n = table.size();
+        std::vector<std::vector<int>> distance(n, std::vector<int>(n));
+        std::vector<int> costs(n);
+        
+        for (int i = 0; i < n; i++) {
+            costs[i] = std::get<2>(table[i]);
+            for (int j = 0; j < n; j++) {
+                double dx = std::get<0>(table[i]) - std::get<0>(table[j]);
+                double dy = std::get<1>(table[i]) - std::get<1>(table[j]);
+                distance[i][j] = round(sqrt(dx * dx + dy * dy));
+            }
+        }
+        
+        int selectCount = (n + 1) / 2;
+        auto resultA = analyzeGlobalConvexity("TSPA", n, selectCount, distance, costs, bestSolutionA, rngGC);
+        exportConvexityData(resultA, "output");
+        
+        // Print results in structured format
+        std::cout << "Global Convexity Analysis (TSPA) - 1000 Random Local Optima:\n";
+        std::cout << "  Objective: Min=" << resultA.minObjective << ", Max=" << resultA.maxObjective 
+                  << ", Avg=" << (int)resultA.avgObjective << "\n";
+        std::cout << "  Time (ms): Min=" << resultA.totalTime << ", Max=" << resultA.totalTime 
+                  << ", Avg=" << resultA.totalTime << "\n";
+        std::cout << "  Best:";
+        for (int node : resultA.bestSolution) {
+            std::cout << " " << node;
+        }
+        std::cout << "\n";
+        std::cout << "  Common Edges (out of 100):\n";
+        std::cout << "    Avg similarity to all: Min=" << resultA.edgesData[0].minSimilarity 
+                  << ", Max=" << resultA.edgesData[0].maxSimilarity 
+                  << ", Avg=" << resultA.edgesData[0].avgSimilarity 
+                  << " (r=" << resultA.edgesData[0].correlation << ")\n";
+        std::cout << "    Best of 1000 optima:   Min=" << resultA.edgesData[1].minSimilarity 
+                  << ", Max=" << resultA.edgesData[1].maxSimilarity 
+                  << ", Avg=" << resultA.edgesData[1].avgSimilarity 
+                  << " (r=" << resultA.edgesData[1].correlation << ")\n";
+        std::cout << "    Best method (ILS):     Min=" << resultA.edgesData[2].minSimilarity 
+                  << ", Max=" << resultA.edgesData[2].maxSimilarity 
+                  << ", Avg=" << resultA.edgesData[2].avgSimilarity 
+                  << " (r=" << resultA.edgesData[2].correlation << ")\n";
+        std::cout << "  Common Nodes (out of 100):\n";
+        std::cout << "    Avg similarity to all: Min=" << resultA.nodesData[0].minSimilarity 
+                  << ", Max=" << resultA.nodesData[0].maxSimilarity 
+                  << ", Avg=" << resultA.nodesData[0].avgSimilarity 
+                  << " (r=" << resultA.nodesData[0].correlation << ")\n";
+        std::cout << "    Best of 1000 optima:   Min=" << resultA.nodesData[1].minSimilarity 
+                  << ", Max=" << resultA.nodesData[1].maxSimilarity 
+                  << ", Avg=" << resultA.nodesData[1].avgSimilarity 
+                  << " (r=" << resultA.nodesData[1].correlation << ")\n";
+        std::cout << "    Best method (ILS):     Min=" << resultA.nodesData[2].minSimilarity 
+                  << ", Max=" << resultA.nodesData[2].maxSimilarity 
+                  << ", Avg=" << resultA.nodesData[2].avgSimilarity 
+                  << " (r=" << resultA.nodesData[2].correlation << ")\n\n";
+    }
+    
+    // TSPB
+    {
+        std::vector<std::tuple<int, int, int>> table;
+        std::ifstream fin("input/TSPB.csv");
+        std::string line;
+        while (std::getline(fin, line)) {
+            if (line.empty()) continue;
+            std::replace(line.begin(), line.end(), ';', ' ');
+            std::istringstream iss(line);
+            int x, y, cost;
+            if (iss >> x >> y >> cost) {
+                table.push_back(std::make_tuple(x, y, cost));
+            }
+        }
+        fin.close();
+        
+        int n = table.size();
+        std::vector<std::vector<int>> distance(n, std::vector<int>(n));
+        std::vector<int> costs(n);
+        
+        for (int i = 0; i < n; i++) {
+            costs[i] = std::get<2>(table[i]);
+            for (int j = 0; j < n; j++) {
+                double dx = std::get<0>(table[i]) - std::get<0>(table[j]);
+                double dy = std::get<1>(table[i]) - std::get<1>(table[j]);
+                distance[i][j] = round(sqrt(dx * dx + dy * dy));
+            }
+        }
+        
+        int selectCount = (n + 1) / 2;
+        auto resultB = analyzeGlobalConvexity("TSPB", n, selectCount, distance, costs, bestSolutionB, rngGC);
+        exportConvexityData(resultB, "output");
+        
+        // Print results in structured format
+        std::cout << "Global Convexity Analysis (TSPB) - 1000 Random Local Optima:\n";
+        std::cout << "  Objective: Min=" << resultB.minObjective << ", Max=" << resultB.maxObjective 
+                  << ", Avg=" << (int)resultB.avgObjective << "\n";
+        std::cout << "  Time (ms): Min=" << resultB.totalTime << ", Max=" << resultB.totalTime 
+                  << ", Avg=" << resultB.totalTime << "\n";
+        std::cout << "  Best:";
+        for (int node : resultB.bestSolution) {
+            std::cout << " " << node;
+        }
+        std::cout << "\n";
+        std::cout << "  Common Edges (out of 100):\n";
+        std::cout << "    Avg similarity to all: Min=" << resultB.edgesData[0].minSimilarity 
+                  << ", Max=" << resultB.edgesData[0].maxSimilarity 
+                  << ", Avg=" << resultB.edgesData[0].avgSimilarity 
+                  << " (r=" << resultB.edgesData[0].correlation << ")\n";
+        std::cout << "    Best of 1000 optima:   Min=" << resultB.edgesData[1].minSimilarity 
+                  << ", Max=" << resultB.edgesData[1].maxSimilarity 
+                  << ", Avg=" << resultB.edgesData[1].avgSimilarity 
+                  << " (r=" << resultB.edgesData[1].correlation << ")\n";
+        std::cout << "    Best method (ILS):     Min=" << resultB.edgesData[2].minSimilarity 
+                  << ", Max=" << resultB.edgesData[2].maxSimilarity 
+                  << ", Avg=" << resultB.edgesData[2].avgSimilarity 
+                  << " (r=" << resultB.edgesData[2].correlation << ")\n";
+        std::cout << "  Common Nodes (out of 100):\n";
+        std::cout << "    Avg similarity to all: Min=" << resultB.nodesData[0].minSimilarity 
+                  << ", Max=" << resultB.nodesData[0].maxSimilarity 
+                  << ", Avg=" << resultB.nodesData[0].avgSimilarity 
+                  << " (r=" << resultB.nodesData[0].correlation << ")\n";
+        std::cout << "    Best of 1000 optima:   Min=" << resultB.nodesData[1].minSimilarity 
+                  << ", Max=" << resultB.nodesData[1].maxSimilarity 
+                  << ", Avg=" << resultB.nodesData[1].avgSimilarity 
+                  << " (r=" << resultB.nodesData[1].correlation << ")\n";
+        std::cout << "    Best method (ILS):     Min=" << resultB.nodesData[2].minSimilarity 
+                  << ", Max=" << resultB.nodesData[2].maxSimilarity 
+                  << ", Avg=" << resultB.nodesData[2].avgSimilarity 
+                  << " (r=" << resultB.nodesData[2].correlation << ")\n\n";
+    }
+    
+    // Record end time and calculate elapsed time
+    auto endTime = std::chrono::high_resolution_clock::now();
+    auto endTimeT = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    auto elapsedMs = std::chrono::duration<double, std::milli>(endTime - startTime).count();
+    
+    std::cout << "\nExecution ended at: " << std::put_time(std::localtime(&endTimeT), "%Y-%m-%d %H:%M:%S") << "\n";
+    std::cout << "Total time elapsed: " << (elapsedMs / 1000.0) << " seconds (" << elapsedMs << " ms)\n" << std::flush;
     
     return 0;
 }

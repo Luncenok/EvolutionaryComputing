@@ -17,4 +17,6 @@ g++ -std=c++17 -O2 -I. ^
     assignment5/localSearchLMCandidates.cpp ^
     assignment6/multipleStartLS.cpp ^
     assignment6/iteratedLS.cpp ^
+    assignment7/largeNeighborhoodSearch.cpp ^
+    assignment8/globalConvexity.cpp ^
     -o main && main.exe > output.txt
