@@ -17,4 +17,6 @@ g++ -std=c++17 -O2 -I. \
     assignment6/multipleStartLS.cpp \
     assignment6/iteratedLS.cpp \
     assignment7/largeNeighborhoodSearch.cpp \
+    assignment8/globalConvexity.cpp \
+    assignment9/hybridEvolutionaryAlgorithm.cpp \
     -o main && ./main | tee output.txt

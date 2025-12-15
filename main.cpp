@@ -28,6 +28,7 @@
 #include "include/iteratedLS.h"
 #include "include/largeNeighborhoodSearch.h"
 #include "include/globalConvexity.h"
+#include "include/hybridEvolutionaryAlgorithm.h"
 
 std::vector<int> process(const std::string& filename, bool returnBestSolution = false) {
     std::vector<std::tuple<int, int, int>> table;
