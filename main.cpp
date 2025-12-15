@@ -29,6 +29,7 @@
 #include "include/largeNeighborhoodSearch.h"
 #include "include/globalConvexity.h"
 #include "include/hybridEvolutionaryAlgorithm.h"
+#include "include/amsea.h"
 
 std::vector<int> process(const std::string& filename, bool returnBestSolution = false) {
     std::vector<std::tuple<int, int, int>> table;
@@ -349,6 +350,101 @@ std::vector<int> process(const std::string& filename, bool returnBestSolution = 
     
     printAlgorithmResult("LNS without LS (time limit = " + std::to_string((int)lnsTimeLimit) + " ms)", lnsNoLSResult);
     std::cout << "  Iterations: Avg=" << avgLNSNoLSIter << "\n\n" << std::flush;
+    
+    // ============================================================================
+    // Hybrid Evolutionary Algorithm (HEA) - Assignment 9
+    // ============================================================================
+    
+    double heaTimeLimit = mslsResult.avgTime;  // Same time limit as MSLS
+    
+    // HEA Operator 1 (Common Nodes and Edges)
+    std::vector<HEAResult> heaOp1Results;
+    AlgorithmResult heaOp1Result =
+        evaluateIterativeAlgorithm<HEAResult>("HEA Op1", 20, [&]() {
+            auto res = hybridEAOperator1(n, selectCount, distance, costs, heaTimeLimit, rng);
+            heaOp1Results.push_back(res);
+            return res;
+        });
+    
+    long long sumHeaOp1Gen = 0;
+    for (const auto& res : heaOp1Results) {
+        sumHeaOp1Gen += res.generations;
+    }
+    double avgHeaOp1Gen = sumHeaOp1Gen / 20.0;
+    
+    printAlgorithmResult("HEA Operator 1 (time limit = " + std::to_string((int)heaTimeLimit) + " ms)", heaOp1Result);
+    std::cout << "  Generations: Avg=" << avgHeaOp1Gen << "\n\n" << std::flush;
+    
+    // HEA Operator 2 with LS
+    std::vector<HEAResult> heaOp2Results;
+    AlgorithmResult heaOp2Result =
+        evaluateIterativeAlgorithm<HEAResult>("HEA Op2", 20, [&]() {
+            auto res = hybridEAOperator2WithLS(n, selectCount, distance, costs, heaTimeLimit, rng);
+            heaOp2Results.push_back(res);
+            return res;
+        });
+    
+    long long sumHeaOp2Gen = 0;
+    for (const auto& res : heaOp2Results) {
+        sumHeaOp2Gen += res.generations;
+    }
+    double avgHeaOp2Gen = sumHeaOp2Gen / 20.0;
+    
+    printAlgorithmResult("HEA Operator 2 with LS (time limit = " + std::to_string((int)heaTimeLimit) + " ms)", heaOp2Result);
+    std::cout << "  Generations: Avg=" << avgHeaOp2Gen << "\n\n" << std::flush;
+    
+    // HEA Operator 2 without LS
+    std::vector<HEAResult> heaOp2NoLSResults;
+    AlgorithmResult heaOp2NoLSResult =
+        evaluateIterativeAlgorithm<HEAResult>("HEA Op2 NoLS", 20, [&]() {
+            auto res = hybridEAOperator2NoLS(n, selectCount, distance, costs, heaTimeLimit, rng);
+            heaOp2NoLSResults.push_back(res);
+            return res;
+        });
+    
+    long long sumHeaOp2NoLSGen = 0;
+    for (const auto& res : heaOp2NoLSResults) {
+        sumHeaOp2NoLSGen += res.generations;
+    }
+    double avgHeaOp2NoLSGen = sumHeaOp2NoLSGen / 20.0;
+    
+    printAlgorithmResult("HEA Operator 2 without LS (time limit = " + std::to_string((int)heaTimeLimit) + " ms)", heaOp2NoLSResult);
+    std::cout << "  Generations: Avg=" << avgHeaOp2NoLSGen << "\n\n" << std::flush;
+    
+    // ============================================================================
+    // Adaptive Multi-Strategy Evolutionary Algorithm (AMSEA) - Assignment 10
+    // ============================================================================
+    
+    double amseaTimeLimit = mslsResult.avgTime;  // Same time limit as other methods
+    
+    std::vector<AMSEAResult> amseaResults;
+    AlgorithmResult amseaResult =
+        evaluateIterativeAlgorithm<AMSEAResult>("AMSEA", 20, [&]() {
+            auto res = amsea(n, selectCount, distance, costs, amseaTimeLimit, rng);
+            amseaResults.push_back(res);
+            return res;
+        });
+    
+    // Calculate average generations and operator statistics
+    long long sumAmseaGen = 0;
+    int totalOp1Success = 0, totalOp2Success = 0, totalPathRelinkSuccess = 0;
+    int totalOp1Attempts = 0, totalOp2Attempts = 0, totalPathRelinkAttempts = 0;
+    for (const auto& res : amseaResults) {
+        sumAmseaGen += res.generations;
+        totalOp1Success += res.operatorSuccesses[0];
+        totalOp2Success += res.operatorSuccesses[1];
+        totalPathRelinkSuccess += res.operatorSuccesses[2];
+        totalOp1Attempts += res.operatorAttempts[0];
+        totalOp2Attempts += res.operatorAttempts[1];
+        totalPathRelinkAttempts += res.operatorAttempts[2];
+    }
+    double avgAmseaGen = sumAmseaGen / 20.0;
+    
+    printAlgorithmResult("AMSEA (time limit = " + std::to_string((int)amseaTimeLimit) + " ms)", amseaResult);
+    std::cout << "  Generations: Avg=" << avgAmseaGen << "\n";
+    std::cout << "  Operator Stats: Op1=" << totalOp1Success << "/" << totalOp1Attempts
+              << ", Op2=" << totalOp2Success << "/" << totalOp2Attempts
+              << ", PathRelink=" << totalPathRelinkSuccess << "/" << totalPathRelinkAttempts << "\n\n" << std::flush;
     
     return bestILSSolution;
 }
