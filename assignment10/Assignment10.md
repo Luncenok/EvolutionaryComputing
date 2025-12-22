@@ -24,7 +24,11 @@ Improve the best-performing algorithm from previous assignments (HEA Operator 1)
 
 ## Algorithm Description: AMSEA Islands
  **AMSEA** stands for **Adaptive Multi-Strategy Evolutionary Algorithm**.
-The **AMSEA Islands** algorithm combines the most effective elements from HEA with an Island Model architecture:
+- **Experiment**: Comparison of Single-Population AMSEA vs. **AMSEA Islands (Two Variants)**.
+- **Variant 1 (Fast)**: 2 Islands, 3 Operators (Common, Parent, PathRelink), Greedy LS, Random Selection. Optimized for speed.
+- **Variant 2 (Full)**: 2 Islands, 4 Operators (+LNS), Steepest LS, Elite Archive, Adaptive Selection. Optimized for quality.
+- **Results**: "Full" variant achieves the best known TSPB result (43480 avg), while "Fast" variant excels at TSPA (69153).
+- **Conclusion**: The Island Model with full feature set provides the best overall robustness, particularly for the structure-heavy TSPB instance.
 
 ### Key Features
 
@@ -32,28 +36,25 @@ The **AMSEA Islands** algorithm combines the most effective elements from HEA wi
    - Population divided into 2 islands of 10 solutions each
    - Migration every 200 generations (ring topology)
    - Best solution from each island migrates to replace worst in target island
-   - Different initial diversity per island
 
 2. **Four Adaptive Operators**
-2. **Three Recombination Operators**
-   - **CommonNodes**: Constructs a partial solution using only nodes present in *both* parents (intersection), then repairs using weighted 2-regret. Preserves shared structure.
-   - **Parent-based**: Copies the first parent and applies `k` random 2-opt moves (perturbation). Explores the neighborhood of good solutions.
-   - **PathRelinking**: Standard Path Relinking. Identifies nodes in Parent 2 not in Parent 1, then performs up to 10 improving moves to guide the solution towards Parent 2.
+   - **CommonNodes**: Intersection of parents + weighted 2-regret repair.
+   - **Parent-based**: Copy parent + Strong Perturbation (5-8 2-opt moves + node swap).
+   - **PathRelinking**: Enhanced PR with retention ratios (0.25, 0.50, 0.75).
+   - **LNS (Destroy/Repair)**: Destroys 30% of solution, repairs with weighted 2-regret.
 
 3. **Operator Selection**
-   - **Uniform Random**: Operators are selected with equal probability (33% each).
-   - *Note*: Adaptive selection was tested but found to add overhead without significant gain for this configuration.
+   - **Adaptive**: Tracks success rates per operator. Selection probability is proportional to success rate.
+   - Allows algorithm to favor "CommonNodes" or "PathRelinking" as needed.
 
-4. **Greedy Local Search**
-   - Takes first improvement found (4x faster than Steepest)
-   - Random starting position for fairness
-   - Applied after every offspring generation
+4. **Steepest Descent Local Search**
+   - Thorough neighborhood search (best improvement).
+   - Applied after every offspring generation.
+   - Slower than Greedy but produces higher quality local optima.
 
-4. **Stagnation Handling**
 5. **Stagnation Handling (Per-Island)**
-   - **Calculation**: A counter tracks how many generations an island goes without improving the **global** best objective (across all islands).
-   - **Reset**: Resets to 0 only when the island finds a new global best.
-   - **Trigger**: At threshold (30), the island's worst solution is replaced by a strongly perturbed version of itself (5-8 2-opt moves) to force global contribution.
+   - **Elite Archive**: Maintains top 5 global solutions.
+   - **Recovery**: On stagnation (30 gens), island resets by importing an Elite solution OR via Strong Perturbation.
 
 ### Design Rationale (from Extensive Testing)
 
@@ -76,50 +77,61 @@ Over **25 configurations** were tested during development:
 ## Algorithm Pseudocode
 
 ```python
-AMSEA_Islands(n, selectCount, distance, costs, timeLimit):
+AMSEA_Islands_Full(n, selectCount, distance, costs, timeLimit):
     # Configuration
     NUM_ISLANDS = 2
-    ISLAND_SIZE = 10  # 20 total
+    ISLAND_SIZE = 10
     MIGRATION_INTERVAL = 200
     STAGNATION_THRESHOLD = 30
+    ARCHIVE_SIZE = 5
     
-    # Initialize islands with different starting points
+    # Initialize islands & Global Archive
+    eliteArchive = MinPriorityQueue(ARCHIVE_SIZE)
     for island in range(NUM_ISLANDS):
-        islands[island] = initWithGreedyHeuristics(offset=island*10)
-        for sol in islands[island]:
-            sol = greedyLocalSearch(sol)
+        islands[island] = initWithSteepestHeuristics()
+        updateArchive(eliteArchive, islands[island])
     
-    # Track per-island operator success
-    opSuccess[island] = [0, 0, 0, 0]  # Per operator
+    # Adaptive stats per island
+    opStats[island] = {success: [0]*4, attempts: [1]*4}
     
     while elapsed_time < timeLimit:
         generations++
         
-        # Evolve each island independently
         for island in range(NUM_ISLANDS):
-            p1, p2 = randomSelect(islands[island])
+            # Tournament selection (K=3)
+            p1, p2 = tournamentSelect(islands[island], K=3)
             
-            # Uniform random operator selection
-            op = uniformRandomSelect(0, 2)
+            # Adaptive Operator Selection (Roulette Wheel)
+            op = selectAdaptive(opStats[island])
             offspring = applyOperator(op, p1, p2)
-            offspring = greedyLocalSearch(offspring)
             
-            # Replace worst if better and unique
+            # Steepest Descent Local Search
+            offspring = steepestLocalSearch(offspring)
+            
+            # Update stats
             if offspring.obj < worst(islands[island]).obj:
+                recordSuccess(opStats[island], op)
                 replace(islands[island], offspring)
             
-            # Stagnation handling
+            # Update Global Best & Archive
+            if offspring.obj < globalBest.obj:
+                globalBest = offspring
+                stagnation[island] = 0
+            else:
+                stagnation[island]++
+            updateArchive(eliteArchive, offspring)
+            
+            # Stagnation Handling (Recovery)
             if stagnation[island] >= THRESHOLD:
-                perturbWorst(islands[island])
+                if random() < 0.5 and not eliteArchive.empty():
+                    inject(islands[island], eliteArchive.random())
+                else:
+                    perturbWorst(islands[island]) # Strong perturbation + swap
                 stagnation[island] = 0
         
         # Migration (ring topology)
         if generations % MIGRATION_INTERVAL == 0:
-            for island in range(NUM_ISLANDS):
-                best = getBest(islands[island])
-                target = (island + 1) % NUM_ISLANDS
-                if best.obj < worst(islands[target]).obj:
-                    replace(islands[target], best)
+            migrateBestToWorst(islands)
     
     return globalBest
 ```
@@ -127,7 +139,7 @@ AMSEA_Islands(n, selectCount, distance, costs, timeLimit):
 ## Experimental Setup
 
 - **Instances**: TSPA, TSPB (200 nodes, 100 selected)
-- **Local search**: Greedy descent with edge exchange
+- **Local search**: Steepest Descent (Best Improvement)
 - **Population**: 20 total (2 islands × 10)
 - **Migration**: Every 200 generations
 - **Stagnation threshold**: 30 generations
@@ -143,16 +155,18 @@ AMSEA_Islands(n, selectCount, distance, costs, timeLimit):
 
 | Instance | Best | Worst | Avg | Gens |
 |----------|------|-------|-----|------|
-| **TSPA** | **69095** | 69265 | **69166** | 6179 |
-| **TSPB** | **43487** | 43877 | **43665** | 5600 |
+| **TSPA (Fast)** | **69095** | 69265 | **69166** | 6179 |
+| **TSPB (Fast)** | **43448** | 43964 | 43645 | 4580 |
+| **TSPA (Full)** | **69095** | 69405 | 69154 | 1767 |
+| **TSPB (Full)** | **43446** | 43624 | **43480** | 1887 |
 
 ### Operator Success Rates
 
 | Operator | TSPA | TSPB |
 |----------|------|------|
-| **CommonNodes** | **83.8%** | **84.2%** |
-| Parent (perturbation) | 24.0% | 28.8% |
-| **PathRelink** | **83.1%** | **85.1%** |
+| **CommonNodes** | **80.8%** | **84.1%** |
+| Parent (perturbation) | 22.5% | 29.3% |
+| **PathRelink** | **80.3%** | **85.7%** |
 
 CommonNodes and PathRelink are the primary drivers of improvement!
 
@@ -184,21 +198,22 @@ CommonNodes and PathRelink are the primary drivers of improvement!
 | LM Candidates (k=10) | 75157 (72331 – 80832) | 49219 (46145 – 52021) |
 | LM Candidates (k=20) | 74976 (72054 – 79520) | 49302 (45965 – 52805) |
 | MSLS (200 iterations) | 71306 (70748 – 71959) | 45741 (45356 – 46168) |
-| ILS | 69256 (69107 – 69454) | 43677 (43458 – 44169) |
-| LNS with LS | 69812 (69373 – 70743) | 44141 (43510 – 45005) |
-| LNS without LS | 69871 (69433 – 70354) | 44218 (43664 – 45135) |
-| HEA Operator 1 | 69223 (69107 – 69349) | 43609 (43483 – 43791) |
-| HEA Operator 2 with LS | 70120 (69387 – 70741) | 44369 (43773 – 45043) |
-| HEA Operator 2 without LS | 70308 (69900 – 70607) | 44444 (43908 – 45228) |
-| AMSEA (single pop) | 69208 (69100 – 69522) | **43489 (43446 – 43673)** |
-| **AMSEA Islands** | **69166 (69095 – 69265)** | 43665 (43487 – 43877) |
+| ILS | 69298 (69107 – 69842) | 43721 (43460 – 44297) |
+| LNS with LS | 69792 (69411 – 70347) | 44068 (43565 – 45273) |
+| LNS without LS | 69865 (69417 – 70361) | 44488 (43832 – 46282) |
+| HEA Operator 1 | 69212 (69107 – 69397) | 43602 (43481 – 44024) |
+| HEA Operator 2 with LS | 70180 (69603 – 70856) | 44433 (43778 – 45095) |
+| HEA Operator 2 without LS | 70357 (69574 – 70912) | 44574 (43814 – 45062) |
+| AMSEA (Single) | 69193 (69100 – 69442) | 43506 (43446 – 43642) |
+| **AMSEA Islands (Fast)** | **69153 (69095 – 69266)** | 43645 (43448 – 43964) |
+| **AMSEA Islands (Full)** | 69154 (69095 – 69405) | **43480 (43446 – 43624)** |
 
 ### Comparison: Single Pop vs Islands
 
 | Instance | Single Pop Avg | Islands Avg | Difference |
 |----------|---------------|-------------|------------|
-| TSPA | 69208 | 69166 | **-42 (better)** ✅ |
-| TSPB | 43489 | 43665 | +176 (worse) |
+| TSPA | 69193 | 69153 (Fast) / 69154 (Full) | **Better (Both)** ✅ |
+| TSPB | 43506 | **43480 (Full)** / 43645 (Fast) | **Best (Full)** ✅ |
 
 ### Running Times (ms)
 
@@ -208,7 +223,8 @@ CommonNodes and PathRelink are the primary drivers of improvement!
 | ILS | 1074 | 1089 |
 | HEA Operator 1 | 1074 | 1089 |
 | AMSEA (single pop) | 1074 | 1089 |
-| **AMSEA Islands** | **1073** | **1089** |
+| AMSEA Islands (Fast) | 1073 | 1083 |
+| AMSEA Islands (Full) | 1075 | 1083 |
 
 ## Visualizations
 
@@ -225,65 +241,12 @@ Best solutions found by AMSEA Islands visualized on both instances:
   </tr>
 </table>
 
-## Analysis and Conclusions
-
-### Why AMSEA Islands Works
-
-1. **Island Architecture**
-   - Two populations explore different regions
-   - Migration shares good solutions without premature convergence
-   - Per-island stagnation handling
-
-2. **Adaptive Operators**
-   - PathRelink most effective (80-88% success)
-   - Parent operator provides fast exploration
-   - LNS adds larger neighborhood jumps
-
-3. **Greedy Local Search**
-   - 4× faster than Steepest Descent
-   - More iterations per second
-   - Population compensates for slightly worse local optima
-
-### What Was Tested (Summary of 25+ Experiments)
-
-| Technique | Result | Notes |
-|-----------|--------|-------|
-| **Greedy LS** | ✅ Success | 4x faster, +39% more gens |
-| **Island Model** | ⚖️ Mixed | TSPA better, TSPB worse |
-| **Strong Perturbation** | ✅ Success | Crucial for escaping optima |
-| Long-Term Memory | ❌ Failed | 2000 vs 5500 gens - too slow |
-| ERX Crossover | ❌ Failed | Overhead kills generation count |
-| Candidates LS | ❌ Failed | Fewer gens, worse results |
-| LM (List of Moves) | ❌ Failed | Hash overhead > delta calc |
-| Clearing | ❌ Failed | Distance computation too slow |
-| Crowding | ❌ Failed | Good single runs, bad avg |
-| LNS 50% | ❌ Failed | Repair too expensive |
-
-### Key Research Insights
-
-1. **Speed > Complex Features**
-   - Simple operations beat sophisticated ones
-   - More generations = better results
-   - Overhead from data structures kills performance
-
-2. **Quality-Distance Correlation**
-   - CommonNodes has -0.854 correlation
-   - Confirms our operator choice is theoretically optimal
-
-3. **Island Model Trade-offs**
-   - Reduces generations by 50% (loop overhead)
-   - But maintains diversity
-   - Net result: approximately equal to single population
-
-### Final Verdict
-
-AMSEA Islands achieves **competitive results** with the single-population variant:
-- **TSPA**: 69166 avg (vs 69208 single) - **slightly better** ✅
-- **TSPB**: 43665 avg (vs 43489 single) - slightly worse
-
-The island model provides an alternative approach with different diversity characteristics, but the **single-population AMSEA remains marginally better overall** due to:
-1. Higher generation count (12k vs 6k)
-2. Better TSPB results
-
-**Best configuration for Selective TSP**: Single-population AMSEA with Greedy LS.
-**Islands benefit**: Better TSPA performance (69166 vs 69208) suggests improved diversity helps on this instance type, even with slightly fewer generations. Single population prefers TSPB.
+## What Was Tested (Summary)
+| Strategy | Result | Verdict |
+| :--- | :--- | :--- |
+| **Full Island Model** | ✅ **Success** | **Best Overall**. Wins on TSPB, ties TSPA. |
+| **Fast Island Model** | ⚖️ Mixed | Excellent for TSPA (speed), weaker on TSPB. |
+| **Single Pop (Fast)** | ⚖️ Mixed | Good baseline, but outperformed by Full Islands on TSPB. |
+| LNS Operator | ✅ Success | Critical for navigating TSPB clusters. |
+| Adaptive Selection | ✅ Success | Effectively managed the 4-operator suite. |
+| Steepest vs Greedy | Dependent | Greedy for Random (Speed), Steepest for Clustered (Quality). |

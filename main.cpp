@@ -31,6 +31,7 @@
 #include "include/hybridEvolutionaryAlgorithm.h"
 #include "include/amsea.h"
 #include "include/amseaIslands.h"
+#include "include/amseaIslandsFull.h"
 
 std::vector<int> process(const std::string& filename, bool returnBestSolution = false) {
     std::vector<std::tuple<int, int, int>> table;
@@ -479,6 +480,40 @@ std::vector<int> process(const std::string& filename, bool returnBestSolution = 
     std::cout << "  Operator Stats: Op1=" << totalIslandsOp1Success << "/" << totalIslandsOp1Attempts
               << ", Op2=" << totalIslandsOp2Success << "/" << totalIslandsOp2Attempts
               << ", PathRelink=" << totalIslandsPathRelinkSuccess << "/" << totalIslandsPathRelinkAttempts << "\n\n" << std::flush;
+              
+    // ============================================================================
+    // AMSEA Islands Full - Assignment 10 Extension
+    // ============================================================================
+    
+    std::cout << "\n--- AMSEA Islands Full (Slow: Steepest LS, 4 Ops, Adaptive, Archive) ---\n";
+    std::vector<AMSEAIslandsFullResult> fullResults;
+    
+    // Evaluate using standard evaluation loop
+    AlgorithmResult fullResult = evaluateIterativeAlgorithm<AMSEAIslandsFullResult>("AMSEA_Islands_Full", 20, [&]() {
+        auto res = amseaIslandsFull(n, selectCount, distance, costs, amseaTimeLimit, rng, 20);
+        fullResults.push_back(res);
+        return res;
+    });
+    
+    printAlgorithmResult("AMSEA Islands Full", fullResult);
+
+    // Calculate average generations and operator statistics
+    long long sumFullGen = 0;
+    int totalFullOpSuccess[4] = {0}, totalFullOpAttempts[4] = {0};
+    
+    for (const auto& res : fullResults) {
+        sumFullGen += res.generations;
+        for(int k=0; k<4; k++) {
+            totalFullOpSuccess[k] += res.operatorSuccesses[k];
+            totalFullOpAttempts[k] += res.operatorAttempts[k];
+        }
+    }
+    double avgFullGen = sumFullGen / 20.0;
+    std::cout << "  Generations: Avg=" << avgFullGen << "\n";
+    std::cout << "  Operator Stats: Op0(Common)=" << totalFullOpSuccess[0] << "/" << totalFullOpAttempts[0]
+              << ", Op1(Parent)=" << totalFullOpSuccess[1] << "/" << totalFullOpAttempts[1]
+              << ", Op2(PathRelink)=" << totalFullOpSuccess[2] << "/" << totalFullOpAttempts[2]
+              << ", Op3(LNS)=" << totalFullOpSuccess[3] << "/" << totalFullOpAttempts[3] << "\n\n" << std::flush;
     
     return bestILSSolution;
 }
