@@ -35,20 +35,25 @@ The **AMSEA Islands** algorithm combines the most effective elements from HEA wi
    - Different initial diversity per island
 
 2. **Four Adaptive Operators**
-   - **CommonNodes**: Preserves nodes common to both parents, repairs with 2-regret
-   - **Parent-based**: Perturbation of first parent with random 2-opt moves
-   - **PathRelinking**: Tries 25%/50%/75% retention ratios, picks best
-   - **LNS30**: Destroy 30% of nodes, repair with weighted 2-regret
+2. **Three Recombination Operators**
+   - **CommonNodes**: Constructs a partial solution using only nodes present in *both* parents (intersection), then repairs using weighted 2-regret. Preserves shared structure.
+   - **Parent-based**: Copies the first parent and applies `k` random 2-opt moves (perturbation). Explores the neighborhood of good solutions.
+   - **PathRelinking**: Standard Path Relinking. Identifies nodes in Parent 2 not in Parent 1, then performs up to 10 improving moves to guide the solution towards Parent 2.
 
-3. **Greedy Local Search**
+3. **Operator Selection**
+   - **Uniform Random**: Operators are selected with equal probability (33% each).
+   - *Note*: Adaptive selection was tested but found to add overhead without significant gain for this configuration.
+
+4. **Greedy Local Search**
    - Takes first improvement found (4x faster than Steepest)
    - Random starting position for fairness
    - Applied after every offspring generation
 
 4. **Stagnation Handling**
-   - Per-island stagnation counter
-   - Strong perturbation (5-8 2-opt moves + 50% chance node swap)
-   - Global elite archive for recovery
+5. **Stagnation Handling (Per-Island)**
+   - **Calculation**: A counter tracks how many generations an island goes without improving the **global** best objective (across all islands).
+   - **Reset**: Resets to 0 only when the island finds a new global best.
+   - **Trigger**: At threshold (30), the island's worst solution is replaced by a strongly perturbed version of itself (5-8 2-opt moves) to force global contribution.
 
 ### Design Rationale (from Extensive Testing)
 
@@ -92,10 +97,10 @@ AMSEA_Islands(n, selectCount, distance, costs, timeLimit):
         
         # Evolve each island independently
         for island in range(NUM_ISLANDS):
-            p1, p2 = tournamentSelect(islands[island], K=3)
+            p1, p2 = randomSelect(islands[island])
             
-            # Adaptive operator selection
-            op = selectOperatorAdaptive(opSuccess[island])
+            # Uniform random operator selection
+            op = uniformRandomSelect(0, 2)
             offspring = applyOperator(op, p1, p2)
             offspring = greedyLocalSearch(offspring)
             
