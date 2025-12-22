@@ -241,12 +241,19 @@ Best solutions found by AMSEA Islands visualized on both instances:
   </tr>
 </table>
 
-## What Was Tested (Summary)
-| Strategy | Result | Verdict |
-| :--- | :--- | :--- |
-| **Full Island Model** | ✅ **Success** | **Best Overall**. Wins on TSPB, ties TSPA. |
-| **Fast Island Model** | ⚖️ Mixed | Excellent for TSPA (speed), weaker on TSPB. |
-| **Single Pop (Fast)** | ⚖️ Mixed | Good baseline, but outperformed by Full Islands on TSPB. |
-| LNS Operator | ✅ Success | Critical for navigating TSPB clusters. |
-| Adaptive Selection | ✅ Success | Effectively managed the 4-operator suite. |
-| Steepest vs Greedy | Dependent | Greedy for Random (Speed), Steepest for Clustered (Quality). |
+### What Was Tested (Summary of 25+ Experiments)
+
+| Technique | Result | Notes |
+|-----------|--------|-------|
+| **Greedy LS** | ✅ Success | 4x faster, +39% more gens |
+| **Island Model** | ⚖️ Mixed | TSPA better, TSPB worse |
+| **Strong Perturbation** | ✅ Success | Crucial for escaping optima |
+| Long-Term Memory | ❌ Failed | 2000 vs 5500 gens - too slow |
+| ERX Crossover | ❌ Failed | Overhead kills generation count |
+| Candidates LS | ❌ Failed | Fewer gens, worse results |
+| LM (List of Moves) | ❌ Failed | Hash overhead > delta calc |
+| Clearing | ❌ Failed | Distance computation too slow |
+| Crowding | ❌ Failed | Good single runs, bad avg |
+| LNS 50% | ❌ Failed | Repair too expensive |
+| ML Bandit UCB | ❌ Failed | +332 TSPA, +316 TSPB vs AMSEA |
+| **Adaptive Selection** | ✅ Success | Effectively managed the 4-operator suite. |
