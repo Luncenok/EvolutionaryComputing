@@ -20,4 +20,5 @@ g++ -std=c++17 -O2 -I. \
     assignment8/globalConvexity.cpp \
     assignment9/hybridEvolutionaryAlgorithm.cpp \
     assignment10/amsea.cpp \
+    assignment10/amseaIslands.cpp \
     -o main && ./main | tee output.txt

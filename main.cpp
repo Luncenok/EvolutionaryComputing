@@ -30,6 +30,7 @@
 #include "include/globalConvexity.h"
 #include "include/hybridEvolutionaryAlgorithm.h"
 #include "include/amsea.h"
+#include "include/amseaIslands.h"
 
 std::vector<int> process(const std::string& filename, bool returnBestSolution = false) {
     std::vector<std::tuple<int, int, int>> table;
@@ -445,6 +446,39 @@ std::vector<int> process(const std::string& filename, bool returnBestSolution = 
     std::cout << "  Operator Stats: Op1=" << totalOp1Success << "/" << totalOp1Attempts
               << ", Op2=" << totalOp2Success << "/" << totalOp2Attempts
               << ", PathRelink=" << totalPathRelinkSuccess << "/" << totalPathRelinkAttempts << "\n\n" << std::flush;
+    
+    // ============================================================================
+    // AMSEA Islands - Assignment 10
+    // ============================================================================
+    
+    std::vector<AMSEAIslandsResult> amseaIslandsResults;
+    AlgorithmResult amseaIslandsResult =
+        evaluateIterativeAlgorithm<AMSEAIslandsResult>("AMSEA_Islands", 20, [&]() {
+            auto res = amseaIslands(n, selectCount, distance, costs, amseaTimeLimit, rng);
+            amseaIslandsResults.push_back(res);
+            return res;
+        });
+    
+    // Calculate average generations and operator statistics
+    long long sumIslandsGen = 0;
+    int totalIslandsOp1Success = 0, totalIslandsOp2Success = 0, totalIslandsPathRelinkSuccess = 0;
+    int totalIslandsOp1Attempts = 0, totalIslandsOp2Attempts = 0, totalIslandsPathRelinkAttempts = 0;
+    for (const auto& res : amseaIslandsResults) {
+        sumIslandsGen += res.generations;
+        totalIslandsOp1Success += res.operatorSuccesses[0];
+        totalIslandsOp2Success += res.operatorSuccesses[1];
+        totalIslandsPathRelinkSuccess += res.operatorSuccesses[2];
+        totalIslandsOp1Attempts += res.operatorAttempts[0];
+        totalIslandsOp2Attempts += res.operatorAttempts[1];
+        totalIslandsPathRelinkAttempts += res.operatorAttempts[2];
+    }
+    double avgIslandsGen = sumIslandsGen / 20.0;
+    
+    printAlgorithmResult("AMSEA Islands (time limit = " + std::to_string((int)amseaTimeLimit) + " ms)", amseaIslandsResult);
+    std::cout << "  Generations: Avg=" << avgIslandsGen << "\n";
+    std::cout << "  Operator Stats: Op1=" << totalIslandsOp1Success << "/" << totalIslandsOp1Attempts
+              << ", Op2=" << totalIslandsOp2Success << "/" << totalIslandsOp2Attempts
+              << ", PathRelink=" << totalIslandsPathRelinkSuccess << "/" << totalIslandsPathRelinkAttempts << "\n\n" << std::flush;
     
     return bestILSSolution;
 }
